@@ -1,34 +1,30 @@
 import type { Metadata } from 'next'
-import { JetBrains_Mono } from 'next/font/google'
-import '../styles/globals.css'
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700', '800'],
-  variable: '--font-mono',
-  display: 'swap',
-})
+import './globals.css'
 
 export const metadata: Metadata = {
   title: 'MetaRole AI — Your AI Career Co-Pilot',
   description:
-    'MetaRole AI analyzes your skills, predicts career paths, identifies skill gaps, and generates resumes + portfolios. The terminal-style AI career co-pilot.',
-  keywords: ['AI career', 'resume parser', 'skill gap analysis', 'career prediction', 'portfolio generator'],
+    'AI-powered career platform that analyzes your skills, predicts career paths, fills skill gaps, and generates your portfolio and resume automatically.',
+  keywords: ['AI', 'career', 'resume', 'skill analysis', 'job matching', 'portfolio generator'],
   openGraph: {
-    title: 'MetaRole AI — Your AI Career Co-Pilot',
-    description: 'AI-powered career platform with terminal aesthetics.',
+    title: 'MetaRole AI',
+    description: 'Your AI Career Co-Pilot',
     type: 'website',
   },
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="en" className={jetbrainsMono.variable}>
-      <body className="bg-terminal-bg text-terminal-green font-mono antialiased">
-        {/* CRT scanline overlay */}
-        <div className="crt-overlay pointer-events-none fixed inset-0 z-50" aria-hidden="true" />
-        {children}
-      </body>
+    <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
+      <body>{children}</body>
     </html>
   )
 }
