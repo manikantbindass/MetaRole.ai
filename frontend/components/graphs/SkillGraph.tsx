@@ -2,169 +2,156 @@
 
 import { useEffect, useRef } from 'react';
 
-interface SkillNode {
-  id: string;
-  label: string;
+interface Skill {
+  name: string;
   level: number;
   category: string;
 }
 
-interface SkillLink {
-  source: string;
-  target: string;
-}
-
 interface SkillGraphProps {
-  nodes?: SkillNode[];
-  links?: SkillLink[];
-  width?: number;
-  height?: number;
+  skills: Skill[];
 }
-
-const DEFAULT_NODES: SkillNode[] = [
-  { id: 'js', label: 'JavaScript', level: 88, category: 'frontend' },
-  { id: 'ts', label: 'TypeScript', level: 82, category: 'frontend' },
-  { id: 'react', label: 'React', level: 85, category: 'frontend' },
-  { id: 'node', label: 'Node.js', level: 78, category: 'backend' },
-  { id: 'python', label: 'Python', level: 72, category: 'backend' },
-  { id: 'pg', label: 'PostgreSQL', level: 65, category: 'database' },
-  { id: 'docker', label: 'Docker', level: 58, category: 'devops' },
-  { id: 'git', label: 'Git', level: 90, category: 'tools' },
-  { id: 'css', label: 'CSS', level: 80, category: 'frontend' },
-  { id: 'api', label: 'REST APIs', level: 80, category: 'backend' },
-];
-
-const DEFAULT_LINKS: SkillLink[] = [
-  { source: 'js', target: 'ts' },
-  { source: 'js', target: 'react' },
-  { source: 'js', target: 'node' },
-  { source: 'node', target: 'api' },
-  { source: 'node', target: 'pg' },
-  { source: 'python', target: 'pg' },
-  { source: 'docker', target: 'node' },
-  { source: 'git', target: 'docker' },
-  { source: 'react', target: 'css' },
-  { source: 'ts', target: 'react' },
-];
 
 const CATEGORY_COLORS: Record<string, string> = {
-  frontend: '#33ff00',
-  backend: '#ffb000',
-  database: '#00aaff',
-  devops: '#ff3333',
-  tools: '#aa88ff',
+  Frontend: '#33ff00',
+  Backend: '#ffb000',
+  Database: '#00ffff',
+  DevOps: '#ff00ff',
+  Other: '#ffffff',
 };
 
-export function SkillGraph({ nodes = DEFAULT_NODES, links = DEFAULT_LINKS, width = 500, height = 400 }: SkillGraphProps) {
-  const svgRef = useRef<SVGSVGElement>(null);
+export function SkillGraph({ skills }: SkillGraphProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animFrameRef = useRef<number>(0);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    // Simple canvas-based force graph without D3 dependency issues in SSR
-    const svg = svgRef.current;
-    if (!svg) return;
+    const W = canvas.width = canvas.offsetWidth;
+    const H = canvas.height = 280;
 
-    // Place nodes in a force-directed layout approximation
-    const positions: Record<string, { x: number; y: number }> = {};
-    const cx = width / 2;
-    const cy = height / 2;
-
-    nodes.forEach((node, i) => {
-      const angle = (2 * Math.PI * i) / nodes.length;
-      const r = Math.min(width, height) * 0.35;
-      positions[node.id] = {
-        x: cx + r * Math.cos(angle),
-        y: cy + r * Math.sin(angle),
+    // Create nodes
+    const centerX = W / 2, centerY = H / 2;
+    const nodes = skills.map((skill, i) => {
+      const angle = (i / skills.length) * Math.PI * 2 - Math.PI / 2;
+      const radius = 90 + (skill.level / 100) * 40;
+      return {
+        x: centerX + Math.cos(angle) * radius,
+        y: centerY + Math.sin(angle) * radius,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        skill,
+        color: CATEGORY_COLORS[skill.category] || '#ffffff',
+        size: 4 + (skill.level / 100) * 10,
       };
     });
 
-    // Draw using SVG elements
-    svg.innerHTML = '';
+    // Center node
+    const centerNode = {
+      x: centerX, y: centerY,
+      vx: 0, vy: 0,
+      skill: { name: 'YOU', level: 100, category: 'Core' },
+      color: '#33ff00',
+      size: 12,
+    };
 
-    // Defs for glow
-    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-    const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
-    filter.setAttribute('id', 'glow');
-    const blur = document.createElementNS('http://www.w3.org/2000/svg', 'feGaussianBlur');
-    blur.setAttribute('stdDeviation', '3');
-    blur.setAttribute('result', 'coloredBlur');
-    const merge = document.createElementNS('http://www.w3.org/2000/svg', 'feMerge');
-    const m1 = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
-    m1.setAttribute('in', 'coloredBlur');
-    const m2 = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
-    m2.setAttribute('in', 'SourceGraphic');
-    merge.append(m1, m2);
-    filter.append(blur, merge);
-    defs.append(filter);
-    svg.append(defs);
+    let tick = 0;
 
-    // Draw links
-    links.forEach((link) => {
-      const s = positions[link.source];
-      const t = positions[link.target];
-      if (!s || !t) return;
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', String(s.x));
-      line.setAttribute('y1', String(s.y));
-      line.setAttribute('x2', String(t.x));
-      line.setAttribute('y2', String(t.y));
-      line.setAttribute('stroke', '#1f1f1f');
-      line.setAttribute('stroke-width', '1');
-      svg.append(line);
-    });
+    const draw = () => {
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, W, H);
 
-    // Draw nodes
-    nodes.forEach((node) => {
-      const pos = positions[node.id];
-      if (!pos) return;
-      const color = CATEGORY_COLORS[node.category] || '#33ff00';
-      const r = 4 + (node.level / 100) * 8;
+      tick++;
 
-      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      circle.setAttribute('cx', String(pos.x));
-      circle.setAttribute('cy', String(pos.y));
-      circle.setAttribute('r', String(r));
-      circle.setAttribute('fill', color);
-      circle.setAttribute('filter', 'url(#glow)');
-      circle.setAttribute('opacity', '0.9');
+      // Slowly float nodes
+      nodes.forEach(node => {
+        node.x += node.vx;
+        node.y += node.vy;
+        // Bounce
+        if (node.x < 20 || node.x > W - 20) node.vx *= -1;
+        if (node.y < 20 || node.y > H - 20) node.vy *= -1;
+        // Attraction to orbit
+        const dx = centerX - node.x;
+        const dy = centerY - node.y;
+        node.vx += dx * 0.0002;
+        node.vy += dy * 0.0002;
+        // Damping
+        node.vx *= 0.99;
+        node.vy *= 0.99;
+      });
 
-      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('x', String(pos.x));
-      text.setAttribute('y', String(pos.y + r + 12));
-      text.setAttribute('text-anchor', 'middle');
-      text.setAttribute('font-family', 'JetBrains Mono, monospace');
-      text.setAttribute('font-size', '9');
-      text.setAttribute('fill', color);
-      text.setAttribute('opacity', '0.8');
-      text.textContent = node.label;
+      // Draw edges
+      nodes.forEach(node => {
+        ctx.beginPath();
+        ctx.moveTo(centerNode.x, centerNode.y);
+        ctx.lineTo(node.x, node.y);
+        const alpha = 0.1 + (node.skill.level / 100) * 0.3;
+        ctx.strokeStyle = `${node.color}${Math.floor(alpha * 255).toString(16).padStart(2, '0')}`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      });
 
-      svg.append(circle, text);
-    });
-  }, [nodes, links, width, height]);
+      // Draw skill nodes
+      nodes.forEach(node => {
+        // Glow effect
+        const gradient = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, node.size * 3);
+        gradient.addColorStop(0, `${node.color}40`);
+        gradient.addColorStop(1, 'transparent');
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, node.size * 3, 0, Math.PI * 2);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        // Node
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, node.size, 0, Math.PI * 2);
+        ctx.fillStyle = node.color;
+        ctx.fill();
+
+        // Label
+        ctx.font = '9px JetBrains Mono, monospace';
+        ctx.fillStyle = node.color;
+        ctx.textAlign = 'center';
+        ctx.fillText(node.skill.name, node.x, node.y - node.size - 4);
+        ctx.fillText(`${node.skill.level}%`, node.x, node.y + node.size + 12);
+      });
+
+      // Center node
+      const pulse = Math.sin(tick * 0.05) * 2;
+      const cGradient = ctx.createRadialGradient(centerNode.x, centerNode.y, 0, centerNode.x, centerNode.y, 30 + pulse);
+      cGradient.addColorStop(0, '#33ff0060');
+      cGradient.addColorStop(1, 'transparent');
+      ctx.beginPath();
+      ctx.arc(centerNode.x, centerNode.y, 30 + pulse, 0, Math.PI * 2);
+      ctx.fillStyle = cGradient;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(centerNode.x, centerNode.y, centerNode.size, 0, Math.PI * 2);
+      ctx.fillStyle = '#33ff00';
+      ctx.fill();
+
+      ctx.font = 'bold 10px JetBrains Mono, monospace';
+      ctx.fillStyle = '#33ff00';
+      ctx.textAlign = 'center';
+      ctx.fillText('YOU', centerNode.x, centerNode.y + 4);
+
+      animFrameRef.current = requestAnimationFrame(draw);
+    };
+
+    draw();
+    return () => cancelAnimationFrame(animFrameRef.current);
+  }, [skills]);
 
   return (
-    <div className="terminal-window">
-      <div className="terminal-titlebar">
-        <span>skill_graph.svg — force-layout</span>
-      </div>
-      <div className="p-2 bg-terminal-bg">
-        <svg
-          ref={svgRef}
-          width={width}
-          height={height}
-          className="w-full"
-          style={{ maxHeight: height }}
-        />
-        <div className="flex flex-wrap gap-2 p-2 border-t border-terminal-border">
-          {Object.entries(CATEGORY_COLORS).map(([cat, color]) => (
-            <div key={cat} className="flex items-center gap-1 text-xs text-terminal-muted">
-              <div className="w-2 h-2 rounded-full" style={{ background: color }} />
-              {cat}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+    <canvas
+      ref={canvasRef}
+      className="w-full"
+      style={{ height: '280px' }}
+    />
   );
 }

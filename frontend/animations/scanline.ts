@@ -1,131 +1,92 @@
 /**
- * Scanline and CRT effects for MetaRole AI terminal UI
+ * MetaRole AI - CRT Scanline Effect
+ * Creates a retro CRT monitor effect on canvas or DOM elements
  */
 
-/**
- * Creates a moving scanline element over the target
- */
-export function createScanlineEffect(target: HTMLElement): () => void {
-  const scanline = document.createElement('div');
-  scanline.style.cssText = `
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background: linear-gradient(
-      to bottom,
-      transparent,
-      rgba(51, 255, 0, 0.1),
-      transparent
-    );
-    pointer-events: none;
-    z-index: 10;
-    animation: scanline-move 3s linear infinite;
-  `;
-
-  // Inject keyframe if not present
-  if (!document.getElementById('scanline-style')) {
-    const style = document.createElement('style');
-    style.id = 'scanline-style';
-    style.textContent = `
-      @keyframes scanline-move {
-        0% { top: 0; }
-        100% { top: 100%; }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  const prevPosition = target.style.position;
-  target.style.position = 'relative';
-  target.appendChild(scanline);
-
-  return () => {
-    scanline.remove();
-    target.style.position = prevPosition;
-  };
+export interface ScanlineOptions {
+  opacity?: number;
+  lineHeight?: number;
+  speed?: number;
+  color?: string;
 }
 
 /**
- * Loading bar animation with terminal style
+ * Renders animated CRT scanline overlay on a canvas
  */
-export function terminalLoadingBar(
-  container: HTMLElement,
-  options: {
-    duration?: number;
-    label?: string;
-    color?: string;
-    onComplete?: () => void;
-  } = {}
+export function createScanlineOverlay(
+  canvas: HTMLCanvasElement,
+  options: ScanlineOptions = {}
 ): () => void {
-  const { duration = 2000, label = 'LOADING', color = '#33ff00', onComplete } = options;
+  const {
+    opacity = 0.04,
+    lineHeight = 4,
+    speed = 60,
+    color = '51, 255, 0',
+  } = options;
 
-  container.innerHTML = `
-    <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: ${color};">
-      <div style="margin-bottom: 8px; letter-spacing: 0.1em;">${label}...</div>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <div style="flex: 1; height: 4px; background: #1e1e1e; overflow: hidden;">
-          <div id="lb-fill" style="height: 100%; background: ${color}; width: 0%; transition: width ${duration}ms ease; box-shadow: 0 0 8px ${color}40;"></div>
-        </div>
-        <span id="lb-pct" style="min-width: 3ch;">0%</span>
-      </div>
-    </div>
-  `;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return () => {};
 
-  const fill = container.querySelector('#lb-fill') as HTMLElement;
-  const pct = container.querySelector('#lb-pct') as HTMLElement;
+  let animFrameId: number;
+  let offset = 0;
 
-  let startTime: number;
-  let animFrame: number;
+  const draw = () => {
+    const { width, height } = canvas;
+    ctx.clearRect(0, 0, width, height);
 
-  const animate = (ts: number) => {
-    if (!startTime) startTime = ts;
-    const elapsed = ts - startTime;
-    const progress = Math.min((elapsed / duration) * 100, 100);
+    // Moving scan line
+    const gradient = ctx.createLinearGradient(0, offset, 0, offset + lineHeight * 3);
+    gradient.addColorStop(0, `rgba(${color}, 0)`);
+    gradient.addColorStop(0.5, `rgba(${color}, ${opacity * 8})`);
+    gradient.addColorStop(1, `rgba(${color}, 0)`);
 
-    fill.style.width = `${progress}%`;
-    pct.textContent = `${Math.floor(progress)}%`;
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, offset, width, lineHeight * 3);
 
-    if (progress < 100) {
-      animFrame = requestAnimationFrame(animate);
-    } else {
-      onComplete?.();
+    // Static scanlines
+    for (let y = 0; y < height; y += lineHeight) {
+      ctx.fillStyle = `rgba(${color}, ${opacity})`;
+      ctx.fillRect(0, y, width, 1);
     }
+
+    // Vignette
+    const vignette = ctx.createRadialGradient(
+      width / 2, height / 2, height * 0.3,
+      width / 2, height / 2, height * 0.8
+    );
+    vignette.addColorStop(0, 'transparent');
+    vignette.addColorStop(1, `rgba(0, 0, 0, ${opacity * 3})`);
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, width, height);
+
+    offset = (offset + speed / 60) % height;
+    animFrameId = requestAnimationFrame(draw);
   };
 
-  // Trigger CSS transition
-  requestAnimationFrame(() => {
-    fill.style.width = '100%';
-    animFrame = requestAnimationFrame(animate);
-  });
-
-  return () => {
-    cancelAnimationFrame(animFrame);
-    container.innerHTML = '';
-  };
+  draw();
+  return () => cancelAnimationFrame(animFrameId);
 }
 
 /**
- * Boot sequence animation
+ * CSS string for scanline effect (use as inline style or inject into <style>)
  */
-export async function bootSequence(
-  container: HTMLElement,
-  lines: string[],
-  delayBetween = 150
-): Promise<void> {
-  container.innerHTML = '';
-
-  for (const line of lines) {
-    await new Promise<void>((resolve) => {
-      setTimeout(() => {
-        const el = document.createElement('div');
-        el.style.cssText = 'font-family: monospace; font-size: 12px; color: #33ff00; margin: 2px 0;';
-        el.textContent = line;
-        container.appendChild(el);
-        container.scrollTop = container.scrollHeight;
-        resolve();
-      }, delayBetween);
-    });
-  }
+export function scanlineCSS(options: ScanlineOptions = {}): string {
+  const { opacity = 0.04, lineHeight = 4 } = options;
+  return `
+    position: relative;
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 100;
+      background-image: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent ${lineHeight - 1}px,
+        rgba(51, 255, 0, ${opacity}) ${lineHeight - 1}px,
+        rgba(51, 255, 0, ${opacity}) ${lineHeight}px
+      );
+    }
+  `;
 }

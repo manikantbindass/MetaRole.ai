@@ -1,53 +1,62 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { BlinkingCursor } from '@/components/terminal/BlinkingCursor';
+import { motion } from 'framer-motion';
+
+const navLinks = [
+  { href: '/', label: 'HOME' },
+  { href: '/upload', label: 'UPLOAD' },
+  { href: '/analyze', label: 'ANALYZE' },
+  { href: '/dashboard', label: 'DASHBOARD' },
+];
 
 export function Header() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
-    <header className="border-b border-terminal-border bg-terminal-bg sticky top-0 z-40">
-      <div className="flex items-center justify-between px-4 py-2">
+    <header className="border-b border-terminal-green/30 bg-terminal-bg/95 backdrop-blur-sm sticky top-0 z-50">
+      <div className="container mx-auto px-4 h-14 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-terminal-green font-bold text-sm glow-green tracking-widest">
-            [METAROLE_AI]
-          </span>
-          <span className="text-terminal-muted text-xs hidden sm:block">v2.0.0</span>
+        <Link href="/" className="flex items-center gap-2 group">
+          <div className="text-terminal-green font-mono font-bold text-sm tracking-widest">
+            <span className="text-terminal-amber">&gt;</span> METAROLE
+            <span className="text-terminal-amber">.AI</span>
+          </div>
+          <BlinkingCursor className="text-xs" />
         </Link>
 
         {/* Nav */}
-        <nav className="hidden md:flex items-center gap-6 text-xs font-mono">
-          <Link href="/" className="text-terminal-muted hover:text-terminal-green transition-colors">&gt; HOME</Link>
-          <Link href="/dashboard" className="text-terminal-muted hover:text-terminal-green transition-colors">&gt; DASHBOARD</Link>
-          <Link href="/upload" className="text-terminal-muted hover:text-terminal-green transition-colors">&gt; UPLOAD</Link>
-          <Link href="/analyze" className="text-terminal-muted hover:text-terminal-green transition-colors">&gt; ANALYZE</Link>
+        <nav className="hidden md:flex items-center gap-1">
+          {navLinks.map(link => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`px-3 py-1.5 text-xs font-mono tracking-widest transition-all border ${
+                pathname === link.href
+                  ? 'border-terminal-green bg-terminal-green/10 text-terminal-green'
+                  : 'border-transparent text-terminal-green/60 hover:border-terminal-green/40 hover:text-terminal-green'
+              }`}
+            >
+              [{link.label}]
+            </Link>
+          ))}
         </nav>
 
-        {/* CTA */}
-        <div className="flex items-center gap-2">
-          <Link href="/upload">
-            <button className="btn-terminal text-xs py-1.5 px-4">[ START ]</button>
-          </Link>
-          <button
-            className="md:hidden text-terminal-muted text-xs px-2"
-            onClick={() => setMenuOpen(!menuOpen)}
+        {/* Status */}
+        <div className="flex items-center gap-2 text-xs font-mono">
+          <span className="text-terminal-green/40">[SYS:</span>
+          <motion.span
+            className="text-terminal-green"
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity }}
           >
-            {menuOpen ? '[X]' : '[☰]'}
-          </button>
+            ONLINE
+          </motion.span>
+          <span className="text-terminal-green/40">]</span>
         </div>
       </div>
-
-      {/* Mobile menu */}
-      {menuOpen && (
-        <nav className="border-t border-terminal-border px-4 py-3 flex flex-col gap-3 text-xs font-mono md:hidden">
-          <Link href="/" className="text-terminal-muted hover:text-terminal-green">&gt; HOME</Link>
-          <Link href="/dashboard" className="text-terminal-muted hover:text-terminal-green">&gt; DASHBOARD</Link>
-          <Link href="/upload" className="text-terminal-muted hover:text-terminal-green">&gt; UPLOAD</Link>
-          <Link href="/analyze" className="text-terminal-muted hover:text-terminal-green">&gt; ANALYZE</Link>
-        </nav>
-      )}
     </header>
   );
 }

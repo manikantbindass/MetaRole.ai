@@ -1,253 +1,187 @@
 'use client';
-import { useState } from 'react';
-import Link from 'next/link';
 
-const SKILLS = [
-  { name: 'React', level: 90, cat: 'FRONTEND' },
-  { name: 'Node.js', level: 82, cat: 'BACKEND' },
-  { name: 'Python', level: 75, cat: 'AI/ML' },
-  { name: 'TypeScript', level: 88, cat: 'FRONTEND' },
-  { name: 'AWS', level: 65, cat: 'CLOUD' },
-  { name: 'Docker', level: 70, cat: 'DEVOPS' },
-  { name: 'PostgreSQL', level: 78, cat: 'DATABASE' },
-  { name: 'GraphQL', level: 45, cat: 'API' },
+import { useState, useEffect } from 'react';
+import { Header } from '@/components/layout/Header';
+import { Sidebar } from '@/components/layout/Sidebar';
+import { TerminalWindow } from '@/components/terminal/TerminalWindow';
+import { TypewriterText } from '@/components/terminal/TypewriterText';
+import { BlinkingCursor } from '@/components/terminal/BlinkingCursor';
+import { SkillGraph } from '@/components/graphs/SkillGraph';
+import { motion } from 'framer-motion';
+
+const mockSkills = [
+  { name: 'JavaScript', level: 85, category: 'Frontend' },
+  { name: 'React', level: 80, category: 'Frontend' },
+  { name: 'Node.js', level: 70, category: 'Backend' },
+  { name: 'Python', level: 65, category: 'Backend' },
+  { name: 'SQL', level: 60, category: 'Database' },
+  { name: 'TypeScript', level: 75, category: 'Frontend' },
+  { name: 'Docker', level: 45, category: 'DevOps' },
+  { name: 'AWS', level: 40, category: 'DevOps' },
 ];
 
-const JOB_MATCHES = [
-  { title: 'Senior Full-Stack Engineer', company: 'TechCorp Inc.', match: 94, status: 'OPEN', salary: '$120K—$160K' },
-  { title: 'DevOps Cloud Architect', company: 'CloudBase', match: 87, status: 'OPEN', salary: '$130K—$170K' },
-  { title: 'AI/ML Engineer', company: 'DataLabs', match: 78, status: 'OPEN', salary: '$140K—$180K' },
-  { title: 'Backend Engineer', company: 'StartupXYZ', match: 85, status: 'APPLIED', salary: '$100K—$140K' },
+const mockCareerPredictions = [
+  { role: 'Senior Full-Stack Engineer', probability: 87, timeframe: '12 months' },
+  { role: 'Tech Lead', probability: 72, timeframe: '24 months' },
+  { role: 'Solutions Architect', probability: 58, timeframe: '36 months' },
 ];
 
-const CAREER_PATHS = [
-  { role: 'Senior Full-Stack Engineer', probability: 94, trend: '▲' },
-  { role: 'DevOps / Cloud Architect', probability: 87, trend: '▲' },
-  { role: 'AI/ML Engineer', probability: 78, trend: '▲' },
-  { role: 'Tech Lead / Engineering Mgr', probability: 62, trend: '▲' },
-  { role: 'CTO / VP Engineering', probability: 41, trend: '►' },
+const mockJobMatches = [
+  { title: 'Senior React Developer', company: 'TechCorp Inc.', match: 94, salary: '$120k-150k' },
+  { title: 'Full-Stack Engineer', company: 'StartupXYZ', match: 89, salary: '$100k-130k' },
+  { title: 'Frontend Architect', company: 'MegaCorp', match: 82, salary: '$130k-160k' },
 ];
-
-function ProgressBar({ value, color = '#33ff00' }: { value: number; color?: string }) {
-  return (
-    <div className="h-1.5 bg-[#1a1a1a] flex-1">
-      <div
-        className="h-full transition-all duration-700"
-        style={{ width: `${value}%`, backgroundColor: color }}
-      />
-    </div>
-  );
-}
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState<'skills' | 'career' | 'jobs' | 'progress'>('skills');
+  const [activePane, setActivePane] = useState<string>('overview');
+  const [progress, setProgress] = useState(0);
 
-  const tabs = [
-    { id: 'skills', label: '[ SKILL GRAPH ]' },
-    { id: 'career', label: '[ CAREER PATHS ]' },
-    { id: 'jobs', label: '[ JOB MATCHES ]' },
-    { id: 'progress', label: '[ PROGRESS ]' },
-  ] as const;
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setProgress(prev => (prev < 73 ? prev + 1 : 73));
+    }, 30);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-[#33ff00] font-mono">
-      {/* HEADER */}
-      <header className="border-b border-[#1a1a1a] bg-[#0a0a0a] sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link href="/" className="text-sm tracking-widest font-bold hover:opacity-80">[METAROLE.AI]</Link>
-          <div className="flex items-center gap-2 text-xs text-[#555]">
-            <span className="w-2 h-2 rounded-full bg-[#33ff00] animate-pulse inline-block" />
-            <span>SYSTEM ONLINE</span>
-            <span className="ml-4">USER: john_doe</span>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* TOP BAR */}
-        <div className="mb-6">
-          <div className="text-xs text-[#555] tracking-widest mb-1">&gt; metarole dashboard --user=john_doe</div>
-          <h1 className="text-lg font-bold tracking-wider">CAREER INTELLIGENCE DASHBOARD</h1>
-        </div>
-
-        {/* KPI ROW */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-          {[
-            { label: 'SKILLS MAPPED', value: '48', sub: '+12 this week', color: '#33ff00' },
-            { label: 'SKILL GAPS', value: '7', sub: '3 critical', color: '#ff3333' },
-            { label: 'JOB MATCHES', value: '24', sub: '4 applied', color: '#ffb000' },
-            { label: 'CAREER SCORE', value: '87', sub: '/100 pts', color: '#33ff00' },
-          ].map(kpi => (
-            <div key={kpi.label} className="border border-[#1a1a1a] bg-[#111] p-4">
-              <div className="text-[10px] text-[#555] tracking-widest mb-2">{kpi.label}</div>
-              <div className="text-3xl font-bold" style={{ color: kpi.color }}>{kpi.value}</div>
-              <div className="text-[10px] text-[#555] mt-1">{kpi.sub}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* TABS */}
-        <div className="flex gap-2 mb-6 flex-wrap">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`text-xs tracking-widest px-4 py-2 border transition-all ${
-                activeTab === tab.id
-                  ? 'border-[#33ff00] text-[#33ff00] bg-[#111]'
-                  : 'border-[#1a1a1a] text-[#555] hover:border-[#1a8000] hover:text-[#1a8000]'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* SKILL GRAPH TAB */}
-        {activeTab === 'skills' && (
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="border border-[#1a1a1a] bg-[#111] p-6">
-              <div className="text-xs text-[#555] tracking-widest mb-4">&gt; skill-matrix --visual</div>
-              <div className="space-y-4">
-                {SKILLS.map(skill => (
-                  <div key={skill.name}>
-                    <div className="flex justify-between text-xs mb-1.5">
-                      <span className="text-[#33ff00]">{skill.name}</span>
-                      <div className="flex items-center gap-3">
-                        <span className="text-[#555] text-[10px]">[{skill.cat}]</span>
-                        <span className="text-[#ffb000]">{skill.level}%</span>
-                      </div>
-                    </div>
-                    <ProgressBar value={skill.level} color={skill.level > 80 ? '#33ff00' : skill.level > 60 ? '#ffb000' : '#ff3333'} />
+    <div className="min-h-screen bg-terminal-bg text-terminal-green font-mono flex flex-col">
+      <Header />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar activePane={activePane} onPaneChange={setActivePane} />
+        
+        {/* Main Content */}
+        <main className="flex-1 overflow-auto p-4 lg:p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+            
+            {/* System Status Panel */}
+            <TerminalWindow title="SYSTEM_STATUS.log" className="col-span-full">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="border border-terminal-green/30 p-3">
+                  <div className="text-terminal-amber text-xs mb-1">&gt; PROFILE_SCORE</div>
+                  <div className="text-2xl font-bold text-terminal-green">{progress}%</div>
+                  <div className="w-full bg-terminal-bg border border-terminal-green/20 h-1 mt-2">
+                    <div 
+                      className="h-full bg-terminal-green transition-all duration-100"
+                      style={{ width: `${progress}%` }}
+                    />
                   </div>
-                ))}
+                </div>
+                <div className="border border-terminal-green/30 p-3">
+                  <div className="text-terminal-amber text-xs mb-1">&gt; SKILLS_MAPPED</div>
+                  <div className="text-2xl font-bold">{mockSkills.length}</div>
+                  <div className="text-xs text-terminal-green/60 mt-1">NODES_ACTIVE</div>
+                </div>
+                <div className="border border-terminal-green/30 p-3">
+                  <div className="text-terminal-amber text-xs mb-1">&gt; JOB_MATCHES</div>
+                  <div className="text-2xl font-bold">{mockJobMatches.length}</div>
+                  <div className="text-xs text-terminal-green/60 mt-1">HIGH_RELEVANCE</div>
+                </div>
+                <div className="border border-terminal-green/30 p-3">
+                  <div className="text-terminal-amber text-xs mb-1">&gt; GAPS_DETECTED</div>
+                  <div className="text-2xl font-bold text-terminal-amber">4</div>
+                  <div className="text-xs text-terminal-amber/60 mt-1">ACTION_REQUIRED</div>
+                </div>
               </div>
-            </div>
-            <div className="border border-[#1a1a1a] bg-[#111] p-6">
-              <div className="text-xs text-[#555] tracking-widest mb-4">&gt; skill-gaps --critical</div>
+            </TerminalWindow>
+
+            {/* Skill Graph */}
+            <TerminalWindow title="skill_graph.d3" className="lg:col-span-2">
+              <SkillGraph skills={mockSkills} />
+            </TerminalWindow>
+
+            {/* Career Prediction */}
+            <TerminalWindow title="career_predict.py">
               <div className="space-y-3">
-                {[{ skill: 'Kubernetes', priority: 'CRITICAL', reason: 'Required by 89% of DevOps roles' },
-                  { skill: 'GraphQL', priority: 'HIGH', reason: 'Required by 72% of Full-Stack roles' },
-                  { skill: 'TensorFlow', priority: 'MEDIUM', reason: 'Required by 55% of ML roles' },
-                  { skill: 'Redis', priority: 'LOW', reason: 'Preferred by 41% of backend roles' }].map(g => (
-                  <div key={g.skill} className="flex gap-4 border border-[#1a1a1a] p-3">
-                    <div className={`text-[10px] tracking-wider w-16 shrink-0 ${
-                      g.priority === 'CRITICAL' ? 'text-[#ff3333]' :
-                      g.priority === 'HIGH' ? 'text-[#ffb000]' :
-                      g.priority === 'MEDIUM' ? 'text-[#33ff00]' : 'text-[#555]'
-                    }`}>{g.priority}</div>
-                    <div>
-                      <div className="text-xs font-bold text-[#33ff00]">{g.skill}</div>
-                      <div className="text-[10px] text-[#555] mt-0.5">{g.reason}</div>
+                <TypewriterText 
+                  text="> RUNNING CAREER_PREDICTOR..."
+                  speed={50}
+                  className="text-xs text-terminal-amber mb-3"
+                />
+                {mockCareerPredictions.map((pred, i) => (
+                  <motion.div
+                    key={pred.role}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.2 + 0.5 }}
+                    className="border border-terminal-green/20 p-3"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="text-xs text-terminal-green font-bold">{pred.role}</div>
+                      <div className="text-terminal-amber text-xs">{pred.probability}%</div>
                     </div>
-                  </div>
+                    <div className="w-full bg-terminal-bg border border-terminal-green/20 h-1 mb-1">
+                      <motion.div 
+                        className="h-full bg-terminal-green"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pred.probability}%` }}
+                        transition={{ delay: i * 0.2 + 0.8, duration: 0.8 }}
+                      />
+                    </div>
+                    <div className="text-xs text-terminal-green/50">[ETA: {pred.timeframe}]</div>
+                  </motion.div>
                 ))}
               </div>
-            </div>
-          </div>
-        )}
+            </TerminalWindow>
 
-        {/* CAREER PATHS TAB */}
-        {activeTab === 'career' && (
-          <div className="border border-[#1a1a1a] bg-[#111] p-6">
-            <div className="text-xs text-[#555] tracking-widest mb-6">&gt; predict --career-paths</div>
-            <div className="space-y-4">
-              {CAREER_PATHS.map((path, i) => (
-                <div key={path.role} className="flex items-center gap-4">
-                  <span className="text-[#555] text-sm w-6">{i + 1}.</span>
-                  <div className="flex-1">
-                    <div className="flex justify-between mb-1.5">
-                      <span className="text-xs text-[#33ff00] font-bold">{path.role}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[#ffb000] text-[10px]">{path.trend}</span>
-                        <span className="text-[#33ff00] text-xs font-bold">{path.probability}%</span>
+            {/* Job Matches */}
+            <TerminalWindow title="job_matches.json" className="lg:col-span-2">
+              <div className="space-y-2">
+                <div className="text-xs text-terminal-amber mb-3">&gt; SEMANTIC_SEARCH: {mockJobMatches.length} matches found</div>
+                {mockJobMatches.map((job, i) => (
+                  <motion.div
+                    key={job.title}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.15 }}
+                    className="border border-terminal-green/20 p-3 hover:border-terminal-green/60 transition-colors cursor-pointer group"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="text-sm font-bold text-terminal-green group-hover:text-white transition-colors">{job.title}</div>
+                        <div className="text-xs text-terminal-green/60">{job.company}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-terminal-amber font-bold">{job.match}%</div>
+                        <div className="text-xs text-terminal-green/60">{job.salary}</div>
                       </div>
                     </div>
-                    <ProgressBar value={path.probability} color={path.probability > 80 ? '#33ff00' : '#ffb000'} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* JOB MATCHES TAB */}
-        {activeTab === 'jobs' && (
-          <div className="border border-[#1a1a1a] bg-[#111] p-6">
-            <div className="text-xs text-[#555] tracking-widest mb-6">&gt; job-match --apply</div>
-            <div className="space-y-3">
-              {JOB_MATCHES.map(job => (
-                <div key={job.title} className="border border-[#1a1a1a] p-4 flex flex-wrap gap-4 justify-between items-start hover:border-[#1a8000] transition-all">
-                  <div>
-                    <div className="text-sm font-bold text-[#33ff00]">{job.title}</div>
-                    <div className="text-xs text-[#555] mt-1">{job.company}</div>
-                    <div className="text-xs text-[#ffb000] mt-1">{job.salary}</div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-center">
-                      <div className="text-xl font-bold text-[#33ff00]">{job.match}%</div>
-                      <div className="text-[10px] text-[#555]">MATCH</div>
+                    <div className="w-full bg-terminal-bg border border-terminal-green/20 h-0.5 mt-2">
+                      <div className="h-full bg-terminal-amber" style={{ width: `${job.match}%` }} />
                     </div>
-                    <button className={`text-[10px] tracking-widest border px-3 py-1.5 transition-all ${
-                      job.status === 'APPLIED'
-                        ? 'border-[#555] text-[#555] cursor-default'
-                        : 'border-[#33ff00] text-[#33ff00] hover:bg-[#33ff00] hover:text-[#0a0a0a]'
-                    }`}>
-                      {job.status === 'APPLIED' ? '[ APPLIED ]' : '[ APPLY NOW ]'}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* PROGRESS TAB */}
-        {activeTab === 'progress' && (
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="border border-[#1a1a1a] bg-[#111] p-6">
-              <div className="text-xs text-[#555] tracking-widest mb-4">&gt; progress --tracker</div>
-              <div className="space-y-4">
-                {[
-                  { label: 'PROFILE COMPLETION', value: 72 },
-                  { label: 'SKILLS VERIFIED', value: 60 },
-                  { label: 'RESUME OPTIMIZED', value: 85 },
-                  { label: 'PORTFOLIO BUILT', value: 40 },
-                  { label: 'JOBS APPLIED', value: 25 },
-                ].map(p => (
-                  <div key={p.label}>
-                    <div className="flex justify-between text-[10px] mb-1.5">
-                      <span className="text-[#555] tracking-wider">{p.label}</span>
-                      <span className="text-[#33ff00]">{p.value}%</span>
-                    </div>
-                    <ProgressBar value={p.value} />
-                  </div>
+                  </motion.div>
                 ))}
               </div>
-            </div>
-            <div className="border border-[#1a1a1a] bg-[#111] p-6">
-              <div className="text-xs text-[#555] tracking-widest mb-4">&gt; activity --log</div>
+            </TerminalWindow>
+
+            {/* Progress Tracker */}
+            <TerminalWindow title="progress_tracker.sh">
               <div className="space-y-3 text-xs">
+                <div className="text-terminal-amber">&gt; LEARNING_PATH initialized</div>
                 {[
-                  { time: '2h ago', action: 'Resume uploaded and parsed', type: 'SUCCESS' },
-                  { time: '1d ago', action: '3 job applications submitted', type: 'INFO' },
-                  { time: '2d ago', action: 'Skill gap report generated', type: 'WARN' },
-                  { time: '3d ago', action: 'Career prediction updated', type: 'SUCCESS' },
-                  { time: '1w ago', action: 'Portfolio website generated', type: 'SUCCESS' },
-                ].map((log, i) => (
-                  <div key={i} className="flex gap-3">
-                    <span className="text-[#333] w-12 shrink-0">{log.time}</span>
-                    <span className={`w-14 shrink-0 ${
-                      log.type === 'SUCCESS' ? 'text-[#33ff00]' :
-                      log.type === 'WARN' ? 'text-[#ffb000]' : 'text-[#555]'
-                    }`}>[{log.type}]</span>
-                    <span className="text-[#555]">{log.action}</span>
+                  { task: 'Complete AWS certification', done: false, priority: 'HIGH' },
+                  { task: 'Build 2 open-source projects', done: false, priority: 'MEDIUM' },
+                  { task: 'Learn Docker + Kubernetes', done: false, priority: 'HIGH' },
+                  { task: 'Update LinkedIn profile', done: true, priority: 'LOW' },
+                  { task: 'Practice system design', done: true, priority: 'HIGH' },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className={item.done ? 'text-terminal-green' : 'text-terminal-green/30'}>
+                      {item.done ? '[✓]' : '[ ]'}
+                    </span>
+                    <span className={item.done ? 'line-through text-terminal-green/40' : 'text-terminal-green'}>
+                      {item.task}
+                    </span>
+                    <span className={`ml-auto text-xs ${
+                      item.priority === 'HIGH' ? 'text-red-400' : 
+                      item.priority === 'MEDIUM' ? 'text-terminal-amber' : 'text-terminal-green/50'
+                    }`}>[{item.priority}]</span>
                   </div>
                 ))}
               </div>
-            </div>
+            </TerminalWindow>
+
           </div>
-        )}
+        </main>
       </div>
     </div>
   );

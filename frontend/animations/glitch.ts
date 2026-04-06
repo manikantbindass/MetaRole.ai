@@ -1,81 +1,99 @@
 /**
- * Glitch effect utilities — programmatic glitch for elements
+ * MetaRole AI - Glitch Effect Utilities
+ * CSS-in-JS glitch animations for cyberpunk UI
  */
-
-const GLITCH_CHARS = '!<>-_\\/[]{}—=+*^?#________';
 
 /**
- * Applies a matrix-style text scramble effect on hover / trigger
+ * Applies a glitch effect to a DOM element
  */
-export class TextScramble {
-  private el: HTMLElement;
-  private chars: string;
-  private resolve!: () => void;
-  private frameRequest!: number;
-  private frame = 0;
-  private queue: Array<{
-    from: string;
-    to: string;
-    start: number;
-    end: number;
-    char?: string;
-  }> = [];
+export function applyGlitch(element: HTMLElement, options: GlitchOptions = {}): () => void {
+  const {
+    intensity = 3,
+    duration = 200,
+    interval = 3000,
+    colors = ['#33ff00', '#ffb000', '#00ffff'],
+  } = options;
 
-  constructor(el: HTMLElement) {
-    this.el = el;
-    this.chars = GLITCH_CHARS;
-    this.update = this.update.bind(this);
-  }
+  let animationId: ReturnType<typeof setTimeout>;
 
-  setText(newText: string): Promise<void> {
-    const oldText = this.el.innerText;
-    const length = Math.max(oldText.length, newText.length);
-    const promise = new Promise<void>(resolve => (this.resolve = resolve));
-    this.queue = [];
+  const glitch = () => {
+    const originalTransform = element.style.transform;
+    const frames = 6;
+    let frame = 0;
 
-    for (let i = 0; i < length; i++) {
-      const from = oldText[i] || '';
-      const to = newText[i] || '';
-      const start = Math.floor(Math.random() * 40);
-      const end = start + Math.floor(Math.random() * 40);
-      this.queue.push({ from, to, start, end });
-    }
+    const animate = () => {
+      if (frame >= frames) {
+        element.style.transform = originalTransform;
+        element.style.textShadow = '';
+        element.style.clipPath = '';
+        element.style.color = '';
+        scheduleNext();
+        return;
+      }
 
-    cancelAnimationFrame(this.frameRequest);
-    this.frame = 0;
-    this.update();
-    return promise;
-  }
+      const x = (Math.random() - 0.5) * intensity;
+      const y = (Math.random() - 0.5) * intensity * 0.5;
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const clipY = Math.random() * 100;
 
-  private update() {
-    let output = '';
-    let complete = 0;
+      element.style.transform = `translate(${x}px, ${y}px)`;
+      element.style.textShadow = `
+        ${x * 2}px 0 ${color},
+        ${-x * 2}px 0 #ff00ff
+      `;
+      element.style.clipPath = `inset(${clipY}% 0 ${Math.random() * 20}% 0)`;
 
-    for (let i = 0, n = this.queue.length; i < n; i++) {
-      const { from, to, start, end } = this.queue[i];
-      let { char } = this.queue[i];
+      frame++;
+      animationId = setTimeout(animate, duration / frames);
+    };
 
-      if (this.frame >= end) {
-        complete++;
-        output += to;
-      } else if (this.frame >= start) {
-        if (!char || Math.random() < 0.28) {
-          char = this.chars[Math.floor(Math.random() * this.chars.length)];
-          this.queue[i].char = char;
-        }
-        output += `<span class="text-terminal-amber opacity-70">${char}</span>`;
-      } else {
-        output += from;
+    animate();
+  };
+
+  const scheduleNext = () => {
+    animationId = setTimeout(glitch, interval + Math.random() * 2000);
+  };
+
+  scheduleNext();
+
+  return () => clearTimeout(animationId);
+}
+
+/**
+ * Generates CSS keyframes string for glitch animation
+ */
+export function glitchKeyframes(intensity = 4): string {
+  return `
+    @keyframes glitch {
+      0%, 100% { 
+        clip-path: inset(0 0 100% 0);
+        transform: translate(0);
+      }
+      20% { 
+        clip-path: inset(10% 0 60% 0);
+        transform: translate(${-intensity}px, 0);
+        text-shadow: ${intensity * 2}px 0 #33ff00, ${-intensity}px 0 #ff00ff;
+      }
+      40% { 
+        clip-path: inset(50% 0 30% 0);
+        transform: translate(${intensity}px, 0);
+        text-shadow: ${-intensity * 2}px 0 #ffb000, ${intensity}px 0 #00ffff;
+      }
+      60% { 
+        clip-path: inset(80% 0 5% 0);
+        transform: translate(${-intensity / 2}px, 0);
+      }
+      80% { 
+        clip-path: inset(30% 0 50% 0);
+        transform: translate(${intensity / 2}px, 1px);
       }
     }
+  `;
+}
 
-    this.el.innerHTML = output;
-
-    if (complete === this.queue.length) {
-      this.resolve();
-    } else {
-      this.frameRequest = requestAnimationFrame(this.update);
-      this.frame++;
-    }
-  }
+export interface GlitchOptions {
+  intensity?: number;
+  duration?: number;
+  interval?: number;
+  colors?: string[];
 }

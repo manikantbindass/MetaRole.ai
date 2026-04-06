@@ -1,112 +1,96 @@
 /**
- * Typewriter animation utility for MetaRole AI terminal UI
+ * MetaRole AI - Typewriter Animation Utilities
+ * Terminal-style text animation functions
  */
+
+export type TypewriterCallback = (text: string, done: boolean) => void;
 
 export interface TypewriterOptions {
-  /** Characters per second */
-  speed?: number;
-  /** Delay before starting (ms) */
-  delay?: number;
-  /** Callback when complete */
+  speed?: number;       // ms per character
+  delay?: number;       // initial delay in ms
+  scramble?: boolean;   // matrix-style scramble effect
   onComplete?: () => void;
-  /** Whether to show cursor during typing */
-  cursor?: boolean;
 }
 
 /**
- * Animates text character by character into a DOM element
+ * Core typewriter function - types text character by character
  */
 export function typewriter(
-  element: HTMLElement,
   text: string,
+  callback: TypewriterCallback,
   options: TypewriterOptions = {}
 ): () => void {
-  const { speed = 40, delay = 0, onComplete, cursor = true } = options;
-  const interval = 1000 / speed;
+  const { speed = 50, delay = 0, scramble = false, onComplete } = options;
   let index = 0;
-  let timer: ReturnType<typeof setTimeout>;
-  let intervalId: ReturnType<typeof setInterval>;
+  let timeoutId: ReturnType<typeof setTimeout>;
 
-  // Initial delay
-  timer = setTimeout(() => {
-    if (cursor) {
-      element.innerHTML = '<span class="cursor"></span>';
-    }
+  const chars = '!<>-_\/[]{}—=+*^?#';
+  const getScrambled = (target: string, progress: number) => {
+    return target
+      .split('')
+      .map((char, i) => {
+        if (i < progress) return char;
+        return chars[Math.floor(Math.random() * chars.length)];
+      })
+      .join('');
+  };
 
-    intervalId = setInterval(() => {
-      if (index < text.length) {
-        const char = text[index];
-        if (cursor) {
-          element.innerHTML =
-            text.slice(0, index + 1).replace(/</g, '&lt;').replace(/>/g, '&gt;') +
-            '<span class="cursor"></span>';
-        } else {
-          element.textContent = text.slice(0, index + 1);
-        }
-        index++;
+  const type = () => {
+    if (index <= text.length) {
+      const displayed = scramble
+        ? getScrambled(text, index)
+        : text.slice(0, index);
+      callback(displayed, index === text.length);
+      index++;
+      if (index <= text.length) {
+        timeoutId = setTimeout(type, speed);
       } else {
-        clearInterval(intervalId);
-        if (!cursor) {
-          element.textContent = text;
-        } else {
-          element.innerHTML =
-            text.replace(/</g, '&lt;').replace(/>/g, '&gt;') +
-            '<span class="cursor"></span>';
-        }
         onComplete?.();
       }
-    }, interval);
-  }, delay);
-
-  // Return cleanup function
-  return () => {
-    clearTimeout(timer);
-    clearInterval(intervalId);
+    }
   };
+
+  timeoutId = setTimeout(type, delay);
+  return () => clearTimeout(timeoutId);
 }
 
 /**
- * Multi-line typewriter — types lines sequentially
+ * Sequence multiple typewriter animations
  */
-export async function typewriterSequence(
-  container: HTMLElement,
-  lines: Array<{ text: string; className?: string; delay?: number }>,
-  defaultSpeed = 40
+export async function typeSequence(
+  lines: string[],
+  callback: (lineIndex: number, text: string, done: boolean) => void,
+  options: TypewriterOptions & { lineDelay?: number } = {}
 ): Promise<void> {
-  for (const line of lines) {
-    const el = document.createElement('div');
-    if (line.className) el.className = line.className;
-    container.appendChild(el);
-
-    await new Promise<void>((resolve) => {
-      typewriter(el, line.text, {
-        speed: defaultSpeed,
-        delay: line.delay ?? 0,
-        onComplete: resolve,
-        cursor: false,
-      });
+  const { lineDelay = 300, ...typeOpts } = options;
+  
+  for (let i = 0; i < lines.length; i++) {
+    await new Promise<void>(resolve => {
+      typewriter(lines[i], (text, done) => {
+        callback(i, text, done);
+        if (done) setTimeout(resolve, lineDelay);
+      }, typeOpts);
     });
   }
 }
 
 /**
- * React hook for typewriter animation
+ * Creates a loading bar animation
  */
-export function useTypewriter(
-  texts: string[],
-  options: {
-    speed?: number;
-    deleteSpeed?: number;
-    pauseTime?: number;
-    loop?: boolean;
-  } = {}
-) {
-  // This is a utility — use in React components with useState/useEffect
-  return {
-    texts,
-    speed: options.speed ?? 60,
-    deleteSpeed: options.deleteSpeed ?? 30,
-    pauseTime: options.pauseTime ?? 2000,
-    loop: options.loop ?? true,
-  };
+export function loadingBar(
+  callback: (bar: string, percent: number) => void,
+  options: { duration?: number; width?: number } = {}
+): () => void {
+  const { duration = 2000, width = 20 } = options;
+  const interval = duration / width;
+  let filled = 0;
+  
+  const timer = setInterval(() => {
+    filled++;
+    const bar = '█'.repeat(filled) + '░'.repeat(width - filled);
+    callback(`[${bar}] ${Math.round((filled / width) * 100)}%`, (filled / width) * 100);
+    if (filled >= width) clearInterval(timer);
+  }, interval);
+
+  return () => clearInterval(timer);
 }

@@ -1,31 +1,25 @@
 'use client';
 
+import { motion } from 'framer-motion';
+
 interface BlinkingCursorProps {
-  color?: 'green' | 'amber' | 'white';
-  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+  char?: string;
 }
 
-export function BlinkingCursor({ color = 'green', size = 'md' }: BlinkingCursorProps) {
-  const colorMap = {
-    green: 'var(--terminal-green)',
-    amber: 'var(--terminal-amber)',
-    white: '#ffffff',
-  };
-
-  const sizeMap = {
-    sm: { width: '7px', height: '1em' },
-    md: { width: '10px', height: '1.2em' },
-    lg: { width: '14px', height: '1.4em' },
-  };
-
+export function BlinkingCursor({ className = '', char = '█' }: BlinkingCursorProps) {
   return (
-    <span
-      className="inline-block animate-blink align-text-bottom ml-0.5"
-      style={{
-        background: colorMap[color],
-        ...sizeMap[size],
+    <motion.span
+      className={`inline-block text-terminal-green ml-0.5 ${className}`}
+      animate={{ opacity: [1, 0, 1] }}
+      transition={{
+        duration: 1,
+        repeat: Infinity,
+        ease: 'steps(1)',
       }}
       aria-hidden="true"
-    />
+    >
+      {char}
+    </motion.span>
   );
 }

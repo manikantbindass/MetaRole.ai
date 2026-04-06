@@ -1,159 +1,222 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Header } from '@/components/layout/Header';
+import { TerminalWindow } from '@/components/terminal/TerminalWindow';
+import { TypewriterText } from '@/components/terminal/TypewriterText';
+import { BlinkingCursor } from '@/components/terminal/BlinkingCursor';
+import { SkillGraph } from '@/components/graphs/SkillGraph';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
-const SKILL_CATEGORIES = [
-  {
-    category: 'Frontend',
-    skills: [
-      { name: 'JavaScript', level: 88, gap: 0 },
-      { name: 'TypeScript', level: 82, gap: 8 },
-      { name: 'React', level: 85, gap: 5 },
-      { name: 'Next.js', level: 70, gap: 20 },
-      { name: 'CSS/Tailwind', level: 80, gap: 10 },
-    ],
-  },
-  {
-    category: 'Backend',
-    skills: [
-      { name: 'Node.js', level: 78, gap: 12 },
-      { name: 'Python', level: 72, gap: 18 },
-      { name: 'FastAPI', level: 55, gap: 35 },
-      { name: 'REST APIs', level: 80, gap: 10 },
-      { name: 'GraphQL', level: 35, gap: 55 },
-    ],
-  },
-  {
-    category: 'DevOps',
-    skills: [
-      { name: 'Docker', level: 58, gap: 32 },
-      { name: 'Kubernetes', level: 20, gap: 70 },
-      { name: 'CI/CD', level: 60, gap: 30 },
-      { name: 'AWS/GCP', level: 45, gap: 45 },
-    ],
-  },
-];
-
-const RECOMMENDATIONS = [
-  { priority: 'HIGH', skill: 'Kubernetes', reason: 'Required in 78% of Senior DevOps roles', time: '3-4 weeks', resource: 'CKA Certification' },
-  { priority: 'HIGH', skill: 'GraphQL', reason: 'Demanded in 65% of Full-Stack positions', time: '2 weeks', resource: 'GraphQL Docs + Apollo' },
-  { priority: 'MED', skill: 'System Design', reason: 'Critical for senior-level interviews', time: '4-6 weeks', resource: 'Designing Data-Intensive Apps' },
-  { priority: 'MED', skill: 'AWS/GCP', reason: 'Cloud fluency expected at senior level', time: '3-5 weeks', resource: 'AWS Solutions Architect' },
-  { priority: 'LOW', skill: 'FastAPI', reason: 'Trending Python backend framework', time: '1 week', resource: 'FastAPI Official Docs' },
-];
+const mockAnalysisData = {
+  skills: [
+    { name: 'JavaScript', level: 85, category: 'Frontend' },
+    { name: 'React', level: 80, category: 'Frontend' },
+    { name: 'TypeScript', level: 75, category: 'Frontend' },
+    { name: 'Node.js', level: 70, category: 'Backend' },
+    { name: 'Python', level: 65, category: 'Backend' },
+    { name: 'PostgreSQL', level: 60, category: 'Database' },
+    { name: 'Docker', level: 45, category: 'DevOps' },
+    { name: 'AWS', level: 40, category: 'DevOps' },
+  ],
+  gaps: [
+    { skill: 'Kubernetes', importance: 'HIGH', timeToLearn: '3 months' },
+    { skill: 'System Design', importance: 'HIGH', timeToLearn: '2 months' },
+    { skill: 'GraphQL', importance: 'MEDIUM', timeToLearn: '1 month' },
+    { skill: 'Redis', importance: 'MEDIUM', timeToLearn: '2 weeks' },
+  ],
+  careerPaths: [
+    { role: 'Senior Full-Stack Engineer', match: 87, salary: '$120k-150k', companies: ['Meta', 'Google', 'Stripe'] },
+    { role: 'Backend Engineer', match: 79, salary: '$110k-140k', companies: ['AWS', 'Netflix', 'Uber'] },
+    { role: 'DevOps Engineer', match: 63, salary: '$115k-145k', companies: ['HashiCorp', 'Datadog', 'PagerDuty'] },
+  ],
+};
 
 export default function AnalyzePage() {
-  const [activeTab, setActiveTab] = useState<'gaps' | 'skills' | 'recommendations'>('gaps');
+  const [activeSection, setActiveSection] = useState<'skills' | 'gaps' | 'paths'>('skills');
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadStep, setLoadStep] = useState(0);
+
+  const loadSteps = [
+    'Connecting to AI engine...',
+    'Loading resume data...',
+    'Running skill_gap.py...',
+    'Running career_predictor.py...',
+    'Generating visualizations...',
+    'Analysis complete.',
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLoadStep(prev => {
+        if (prev >= loadSteps.length - 1) {
+          clearInterval(interval);
+          setTimeout(() => setIsLoading(false), 500);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 600);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-terminal-bg text-terminal-green font-mono flex items-center justify-center">
+        <TerminalWindow title="analyze.py --running" className="w-full max-w-lg">
+          <div className="space-y-2 text-sm">
+            {loadSteps.slice(0, loadStep + 1).map((step, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className={i === loadStep ? 'text-terminal-amber' : 'text-terminal-green/60'}
+              >
+                {i < loadStep ? '[✓]' : '[→]'} {step}
+              </motion.div>
+            ))}
+            {loadStep < loadSteps.length - 1 && (
+              <div className="text-terminal-green/40">&gt; <BlinkingCursor /></div>
+            )}
+          </div>
+        </TerminalWindow>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-terminal-bg p-4">
-      <div className="border-b border-terminal-border pb-3 mb-6 flex justify-between items-center">
-        <div>
-          <Link href="/upload" className="text-terminal-muted text-xs hover:text-terminal-green">&lt; BACK_TO_UPLOAD</Link>
-          <h1 className="text-terminal-green text-xl font-bold glow-green mt-1">AI_ANALYSIS_RESULTS</h1>
-        </div>
-        <Link href="/dashboard">
-          <button className="btn-terminal text-xs py-1 px-3">[ DASHBOARD ]</button>
-        </Link>
-      </div>
-
-      {/* Tab bar */}
-      <div className="flex gap-0 mb-6 border-b border-terminal-border">
-        {(['gaps', 'skills', 'recommendations'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`font-mono text-xs px-6 py-2 uppercase transition-all ${
-              activeTab === tab
-                ? 'border-b-2 border-terminal-green text-terminal-green'
-                : 'text-terminal-muted hover:text-terminal-text'
-            }`}
-          >
-            {tab.replace('_', ' ')}
-          </button>
-        ))}
-      </div>
-
-      {activeTab === 'gaps' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-          {SKILL_CATEGORIES.map((cat) => (
-            <div key={cat.category} className="terminal-window">
-              <div className="terminal-titlebar">
-                <span>{cat.category.toLowerCase()}_skills.json</span>
-              </div>
-              <div className="terminal-body">
-                <div className="space-y-3">
-                  {cat.skills.map((skill) => (
-                    <div key={skill.name}>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className={skill.gap > 40 ? 'text-red' : skill.gap > 20 ? 'text-amber' : 'text-green'}>
-                          {skill.name} {skill.gap > 40 ? '[CRITICAL_GAP]' : skill.gap > 20 ? '[NEEDS_WORK]' : '[PROFICIENT]'}
-                        </span>
-                        <span className="text-terminal-muted">You: {skill.level}% | Target: {Math.min(skill.level + skill.gap, 100)}%</span>
-                      </div>
-                      <div className="flex gap-1 h-2">
-                        <div className="bg-terminal-green" style={{ width: `${skill.level}%`, boxShadow: '0 0 4px var(--terminal-green)' }} />
-                        <div className="bg-terminal-amber opacity-40" style={{ width: `${skill.gap}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
-        </motion.div>
-      )}
-
-      {activeTab === 'recommendations' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-          <div className="text-terminal-amber text-xs mb-4">&gt; LEARNING_ROADMAP generated based on target role: Senior Full-Stack Engineer</div>
-          {RECOMMENDATIONS.map((rec, i) => (
-            <motion.div
-              key={rec.skill}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="terminal-card p-4"
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <span className={`text-xs font-bold px-2 py-0.5 border ${
-                      rec.priority === 'HIGH' ? 'border-red text-red' : rec.priority === 'MED' ? 'border-terminal-amber text-amber' : 'border-terminal-green text-green'
-                    }`}>[{rec.priority}]</span>
-                    <span className="text-terminal-green font-bold text-sm">{rec.skill}</span>
-                  </div>
-                  <p className="text-terminal-muted text-xs">{rec.reason}</p>
-                  <div className="text-terminal-muted text-xs mt-1">
-                    ⏱ {rec.time} • 📖 {rec.resource}
-                  </div>
-                </div>
-                <button className="btn-terminal text-xs py-1 px-3 ml-4">START</button>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
-      )}
-
-      {activeTab === 'skills' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <div className="terminal-window">
-            <div className="terminal-titlebar"><span>extracted_skills.json</span></div>
-            <div className="terminal-body">
-              <pre className="text-xs text-terminal-green">{JSON.stringify({
-                total_skills: 47,
-                top_skills: ['JavaScript', 'React', 'TypeScript', 'Node.js', 'Python'],
-                experience_years: 4.5,
-                education: 'B.Sc Computer Science',
-                projects: 12,
-                github_repos: 23,
-              }, null, 2)}</pre>
-            </div>
+    <div className="min-h-screen bg-terminal-bg text-terminal-green font-mono flex flex-col">
+      <Header />
+      <main className="flex-1 container mx-auto p-6 max-w-6xl">
+        <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <TypewriterText text="> ANALYSIS_RESULTS.json" speed={40} className="text-xl font-bold" />
+            <div className="text-terminal-green/50 text-xs mt-1">[TIMESTAMP: {new Date().toISOString()}]</div>
           </div>
-        </motion.div>
-      )}
+          <div className="flex gap-2">
+            {(['skills', 'gaps', 'paths'] as const).map(section => (
+              <button
+                key={section}
+                onClick={() => setActiveSection(section)}
+                className={`px-4 py-2 text-xs border transition-all ${
+                  activeSection === section 
+                    ? 'border-terminal-green bg-terminal-green text-terminal-bg' 
+                    : 'border-terminal-green/30 hover:border-terminal-green/60'
+                }`}
+              >
+                [{section.toUpperCase()}]
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {activeSection === 'skills' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <TerminalWindow title="skill_map.d3">
+              <SkillGraph skills={mockAnalysisData.skills} />
+            </TerminalWindow>
+            <TerminalWindow title="skills_breakdown.json">
+              <div className="space-y-2">
+                {mockAnalysisData.skills.map((skill, i) => (
+                  <motion.div
+                    key={skill.name}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.08 }}
+                    className="flex items-center gap-3"
+                  >
+                    <span className="text-xs text-terminal-green/60 w-24 truncate">{skill.name}</span>
+                    <div className="flex-1 bg-terminal-bg border border-terminal-green/20 h-1">
+                      <motion.div
+                        className="h-full bg-terminal-green"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${skill.level}%` }}
+                        transition={{ delay: i * 0.08 + 0.3, duration: 0.6 }}
+                      />
+                    </div>
+                    <span className="text-xs text-terminal-amber w-8 text-right">{skill.level}%</span>
+                    <span className="text-xs text-terminal-green/40 w-16 text-right">[{skill.category}]</span>
+                  </motion.div>
+                ))}
+              </div>
+            </TerminalWindow>
+          </div>
+        )}
+
+        {activeSection === 'gaps' && (
+          <TerminalWindow title="skill_gaps.json">
+            <div className="mb-3 text-terminal-amber text-sm">&gt; GAPS_DETECTED: {mockAnalysisData.gaps.length} critical skill gaps found</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {mockAnalysisData.gaps.map((gap, i) => (
+                <motion.div
+                  key={gap.skill}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="border border-terminal-amber/30 p-4"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="font-bold text-terminal-amber">{gap.skill}</div>
+                    <div className={`text-xs px-2 py-0.5 border ${
+                      gap.importance === 'HIGH' ? 'border-red-400 text-red-400' : 'border-terminal-amber text-terminal-amber'
+                    }`}>{gap.importance}</div>
+                  </div>
+                  <div className="text-xs text-terminal-green/60">&gt; ETA to learn: {gap.timeToLearn}</div>
+                  <div className="text-xs text-terminal-green/40 mt-1">&gt; Recommended: Online courses, practice projects</div>
+                </motion.div>
+              ))}
+            </div>
+          </TerminalWindow>
+        )}
+
+        {activeSection === 'paths' && (
+          <TerminalWindow title="career_paths.py">
+            <div className="mb-3 text-terminal-amber text-sm">&gt; CAREER_PREDICTOR: Optimal paths computed</div>
+            <div className="space-y-4">
+              {mockAnalysisData.careerPaths.map((path, i) => (
+                <motion.div
+                  key={path.role}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.15 }}
+                  className="border border-terminal-green/30 p-4 hover:border-terminal-green/60 transition-colors"
+                >
+                  <div className="flex justify-between items-start mb-3 flex-wrap gap-2">
+                    <div>
+                      <div className="font-bold text-terminal-green">{path.role}</div>
+                      <div className="text-xs text-terminal-amber mt-0.5">{path.salary}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-terminal-green">{path.match}%</div>
+                      <div className="text-xs text-terminal-green/50">MATCH_SCORE</div>
+                    </div>
+                  </div>
+                  <div className="w-full bg-terminal-bg border border-terminal-green/20 h-1 mb-3">
+                    <motion.div
+                      className="h-full bg-terminal-green"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${path.match}%` }}
+                      transition={{ delay: i * 0.15 + 0.4, duration: 0.8 }}
+                    />
+                  </div>
+                  <div className="text-xs text-terminal-green/60">
+                    &gt; Top companies: {path.companies.join(' | ')}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+            <div className="mt-4 flex gap-3">
+              <Link href="/dashboard" className="border border-terminal-green/30 hover:border-terminal-green px-4 py-2 text-xs transition-all">
+                [VIEW_DASHBOARD]
+              </Link>
+              <button className="border border-terminal-amber/30 hover:border-terminal-amber px-4 py-2 text-xs text-terminal-amber transition-all">
+                [GENERATE_RESUME]
+              </button>
+            </div>
+          </TerminalWindow>
+        )}
+      </main>
     </div>
   );
 }

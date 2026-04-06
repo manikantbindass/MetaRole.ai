@@ -1,70 +1,130 @@
-import axios from 'axios';
+/**
+ * MetaRole AI - API Client
+ * Handles all communication with the FastAPI backend
+ */
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-export const apiClient = axios.create({
-  baseURL: API_BASE,
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    ...options,
+  });
 
-// Request interceptor — attach auth token
-apiClient.interceptors.request.use(
-  (config) => {
-    // Add auth token if available
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('metarole_token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: 'Request failed' }));
+    throw new Error(error.detail || `HTTP ${res.status}`);
+  }
 
-// ─── Resume API ────────────────────────────────────────────
-export const resumeAPI = {
-  /** Upload a resume file (PDF/DOCX) */
-  upload: async (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return apiClient.post('/upload-resume', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-  },
+  return res.json();
+}
 
-  /** Analyze skills from uploaded resume */
-  analyzeSkills: async (resumeId: string) =>
-    apiClient.post('/analyze-skills', { resume_id: resumeId }),
-};
+// ─── Resume APIs ───────────────────────────────────────────────────────────────
 
-// ─── Career API ────────────────────────────────────────────
-export const careerAPI = {
-  /** Predict career paths based on skills */
-  predictCareer: async (skills: string[], targetRole?: string) =>
-    apiClient.post('/predict-career', { skills, target_role: targetRole }),
-};
+export async function uploadResume(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
 
-// ─── Generate API ──────────────────────────────────────────
-export const generateAPI = {
-  /** Generate a tailored resume */
-  generateResume: async (resumeId: string, jobDescription: string) =>
-    apiClient.post('/generate-resume', { resume_id: resumeId, job_description: jobDescription }),
+  const res = await fetch(`${API_BASE}/upload-resume`, {
+    method: 'POST',
+    body: formData,
+  });
 
-  /** Generate a portfolio website */
-  generatePortfolio: async (userId: string) =>
-    apiClient.post('/generate-portfolio', { user_id: userId }),
-};
+  if (!res.ok) throw new Error('Upload failed');
+  return res.json();
+}
 
-// ─── Jobs API ──────────────────────────────────────────────
-export const jobsAPI = {
-  /** Get job matches for a user */
-  matchJobs: async (skills: string[], location?: string) =>
-    apiClient.post('/job-match', { skills, location }),
-};
+export async function analyzeSkills(resumeId: string) {
+  return apiRequest<SkillAnalysisResponse>('/analyze-skills', {
+    method: 'POST',
+    body: JSON.stringify({ resume_id: resumeId }),
+  });
+}
 
-// ─── Health check ──────────────────────────────────────────
-export const healthCheck = () => apiClient.get('/health');
+// ─── Career APIs ───────────────────────────────────────────────────────────────
+
+export async function predictCareer(skills: string[]) {
+  return apiRequest<CareerPredictionResponse>('/predict-career', {
+    method: 'POST',
+    body: JSON.stringify({ skills }),
+  });
+}
+
+// ─── Generation APIs ───────────────────────────────────────────────────────────
+
+export async function generateResume(resumeData: ResumeData, jobDescription: string) {
+  return apiRequest<GeneratedResumeResponse>('/generate-resume', {
+    method: 'POST',
+    body: JSON.stringify({ resume_data: resumeData, job_description: jobDescription }),
+  });
+}
+
+export async function generatePortfolio(resumeData: ResumeData) {
+  return apiRequest<GeneratedPortfolioResponse>('/generate-portfolio', {
+    method: 'POST',
+    body: JSON.stringify({ resume_data: resumeData }),
+  });
+}
+
+// ─── Job Matching APIs ─────────────────────────────────────────────────────────
+
+export async function matchJobs(skills: string[], experience: number) {
+  return apiRequest<JobMatchResponse[]>('/job-match', {
+    method: 'POST',
+    body: JSON.stringify({ skills, experience_years: experience }),
+  });
+}
+
+export async function healthCheck() {
+  return apiRequest<{ status: string }>('/health');
+}
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
+
+export interface SkillAnalysisResponse {
+  skills: Array<{ name: string; level: number; category: string }>;
+  gaps: Array<{ skill: string; importance: string; timeToLearn: string }>;
+  experience_years: number;
+  summary: string;
+}
+
+export interface CareerPredictionResponse {
+  predictions: Array<{
+    role: string;
+    probability: number;
+    timeframe: string;
+    required_skills: string[];
+  }>;
+}
+
+export interface ResumeData {
+  name: string;
+  email: string;
+  skills: string[];
+  experience: Array<{ company: string; role: string; duration: string; bullets: string[] }>;
+  projects: Array<{ name: string; description: string; tech: string[] }>;
+  education: Array<{ school: string; degree: string; year: string }>;
+}
+
+export interface GeneratedResumeResponse {
+  resume_text: string;
+  ats_score: number;
+  improvements: string[];
+}
+
+export interface GeneratedPortfolioResponse {
+  html: string;
+  deployed_url?: string;
+}
+
+export interface JobMatchResponse {
+  title: string;
+  company: string;
+  match_score: number;
+  salary_range: string;
+  url: string;
+  required_skills: string[];
+}

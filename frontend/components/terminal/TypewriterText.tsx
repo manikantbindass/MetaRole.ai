@@ -1,49 +1,62 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { BlinkingCursor } from './BlinkingCursor';
 
 interface TypewriterTextProps {
   text: string;
   speed?: number;
-  delay?: number;
   className?: string;
   showCursor?: boolean;
   onComplete?: () => void;
+  delay?: number;
 }
 
 export function TypewriterText({
   text,
-  speed = 60,
-  delay = 0,
+  speed = 50,
   className = '',
   showCursor = true,
   onComplete,
+  delay = 0,
 }: TypewriterTextProps) {
-  const [displayed, setDisplayed] = useState('');
-  const [done, setDone] = useState(false);
+  const [displayedText, setDisplayedText] = useState('');
+  const [isComplete, setIsComplete] = useState(false);
+  const [started, setStarted] = useState(false);
 
   useEffect(() => {
-    let i = 0;
-    const timeout = setTimeout(() => {
-      const timer = setInterval(() => {
-        if (i < text.length) {
-          setDisplayed(text.slice(0, i + 1));
-          i++;
-        } else {
-          clearInterval(timer);
-          setDone(true);
-          onComplete?.();
-        }
-      }, speed);
-      return () => clearInterval(timer);
-    }, delay);
-    return () => clearTimeout(timeout);
-  }, [text, speed, delay, onComplete]);
+    if (delay > 0) {
+      const delayTimer = setTimeout(() => setStarted(true), delay);
+      return () => clearTimeout(delayTimer);
+    }
+    setStarted(true);
+  }, [delay]);
+
+  useEffect(() => {
+    if (!started) return;
+    
+    let index = 0;
+    setDisplayedText('');
+    setIsComplete(false);
+
+    const interval = setInterval(() => {
+      if (index < text.length) {
+        setDisplayedText(text.slice(0, index + 1));
+        index++;
+      } else {
+        clearInterval(interval);
+        setIsComplete(true);
+        onComplete?.();
+      }
+    }, speed);
+
+    return () => clearInterval(interval);
+  }, [text, speed, started, onComplete]);
 
   return (
-    <span className={className}>
-      {displayed}
-      {showCursor && !done && <span className="cursor" />}
+    <span className={`inline-flex items-center ${className}`}>
+      <span>{displayedText}</span>
+      {showCursor && !isComplete && <BlinkingCursor />}
     </span>
   );
 }
