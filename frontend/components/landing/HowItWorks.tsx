@@ -1,42 +1,50 @@
-const steps = [
-  { step: '01', title: 'UPLOAD', desc: 'Drop your resume (PDF/DOCX) or connect GitHub', icon: '▲' },
-  { step: '02', title: 'ANALYZE', desc: 'AI parses, graphs your skills, finds gaps', icon: '◈' },
-  { step: '03', title: 'PREDICT', desc: 'ML engine maps optimal career trajectories', icon: '◉' },
-  { step: '04', title: 'GENERATE', desc: 'Auto-build resume + portfolio website', icon: '◆' },
-  { step: '05', title: 'MATCH', desc: 'Find + rank best-fit jobs by profile score', icon: '★' },
-];
+const STEPS = [
+  { step: '01', cmd: 'upload_resume', label: 'Upload Resume / GitHub URL', desc: 'Paste your GitHub URL or drop your resume. AI parses everything in seconds.' },
+  { step: '02', cmd: 'analyze_skills', label: 'AI Skill Analysis', desc: 'NLP extracts all skills, maps them into a knowledge graph with strength scores.' },
+  { step: '03', cmd: 'identify_gaps', label: 'Gap Identification', desc: 'Compares your profile against target roles. Lists missing skills with priority levels.' },
+  { step: '04', cmd: 'predict_path', label: 'Career Path Prediction', desc: 'ML model predicts top 5 career paths with salary ranges and time-to-achieve estimates.' },
+  { step: '05', cmd: 'generate_assets', label: 'Generate Portfolio + Resume', desc: 'One-click generation of tailored resume and live portfolio website.' },
+  { step: '06', cmd: 'apply_jobs', label: 'Smart Job Matching', desc: 'Vector search finds best-fit jobs. Auto-apply with customized cover letters.' },
+]
 
 export default function HowItWorks() {
   return (
-    <section className="py-20 px-6 border-t border-terminal-border bg-terminal-surface" id="how-it-works">
-      <div className="max-w-5xl mx-auto">
+    <section id="how" className="py-24 px-4 border-t border-terminal-green-dim grid-bg">
+      <div className="max-w-4xl mx-auto">
         <div className="mb-12">
-          <p className="text-terminal-green font-mono text-xs mb-2">&gt; EXECUTING WORKFLOW_DIAGRAM.exe</p>
-          <h2 className="text-terminal-green font-mono text-2xl">HOW IT WORKS</h2>
-          <div className="h-px bg-terminal-green/30 mt-4" />
+          <div className="text-terminal-amber text-xs tracking-[0.4em] uppercase mb-3">// EXECUTION_FLOW</div>
+          <h2 className="text-terminal-green text-2xl md:text-3xl font-bold tracking-widest">
+            HOW_IT_WORKS.sh
+          </h2>
         </div>
 
         <div className="relative">
-          {/* Connecting line */}
-          <div className="absolute top-10 left-0 right-0 h-px bg-terminal-border hidden md:block" aria-hidden="true" />
+          {/* Vertical line */}
+          <div className="absolute left-[22px] top-0 bottom-0 w-px bg-terminal-green-dim" aria-hidden="true" />
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-            {steps.map((s, i) => (
-              <div key={s.step} className="relative flex flex-col items-center text-center">
-                <div className="w-10 h-10 border border-terminal-green flex items-center justify-center text-terminal-green font-mono text-sm bg-terminal-bg z-10 mb-4">
-                  {s.icon}
+          <div className="space-y-0">
+            {STEPS.map((s, i) => (
+              <div key={s.step} className="relative flex gap-6 group">
+                {/* Step number */}
+                <div className="flex-shrink-0 w-11 h-11 border border-terminal-green flex items-center justify-center bg-terminal-bg z-10 group-hover:bg-terminal-green transition-colors">
+                  <span className="text-terminal-green text-xs font-bold group-hover:text-terminal-bg transition-colors">
+                    {s.step}
+                  </span>
                 </div>
-                <span className="text-terminal-dim font-mono text-xs mb-1">[{s.step}]</span>
-                <span className="text-terminal-green font-mono text-xs font-bold mb-2">{s.title}</span>
-                <span className="text-terminal-dim text-xs leading-relaxed">{s.desc}</span>
-                {i < steps.length - 1 && (
-                  <span className="text-terminal-green/50 text-xs mt-2 md:hidden">↓</span>
-                )}
+
+                {/* Content */}
+                <div className="pb-10 flex-1">
+                  <div className="text-terminal-amber text-xs tracking-widest mb-1 uppercase">
+                    $ {s.cmd}
+                  </div>
+                  <div className="text-terminal-green text-sm font-bold mb-1">{s.label}</div>
+                  <div className="text-terminal-muted text-xs leading-relaxed">{s.desc}</div>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </div>
     </section>
-  );
+  )
 }
