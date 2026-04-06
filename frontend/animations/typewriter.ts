@@ -1,94 +1,112 @@
 /**
- * Typewriter animation utility
- * Animates text character by character into a target element or callback.
+ * Typewriter animation utility for MetaRole AI terminal UI
  */
 
 export interface TypewriterOptions {
-  speed?: number; // ms per character
-  delay?: number; // initial delay
-  loop?: boolean;
-  onChar?: (char: string, index: number, total: number) => void;
+  /** Characters per second */
+  speed?: number;
+  /** Delay before starting (ms) */
+  delay?: number;
+  /** Callback when complete */
   onComplete?: () => void;
+  /** Whether to show cursor during typing */
+  cursor?: boolean;
 }
 
+/**
+ * Animates text character by character into a DOM element
+ */
 export function typewriter(
+  element: HTMLElement,
   text: string,
-  setter: (val: string) => void,
   options: TypewriterOptions = {}
 ): () => void {
-  const { speed = 60, delay = 0, loop = false, onChar, onComplete } = options;
-  let i = 0;
-  let active = true;
+  const { speed = 40, delay = 0, onComplete, cursor = true } = options;
+  const interval = 1000 / speed;
+  let index = 0;
+  let timer: ReturnType<typeof setTimeout>;
+  let intervalId: ReturnType<typeof setInterval>;
 
-  const run = () => {
-    const timer = setInterval(() => {
-      if (!active) { clearInterval(timer); return; }
-      if (i < text.length) {
-        setter(text.slice(0, i + 1));
-        onChar?.(text[i], i, text.length);
-        i++;
-      } else {
-        clearInterval(timer);
-        onComplete?.();
-        if (loop) {
-          setTimeout(() => {
-            i = 0;
-            setter('');
-            run();
-          }, 2000);
+  // Initial delay
+  timer = setTimeout(() => {
+    if (cursor) {
+      element.innerHTML = '<span class="cursor"></span>';
+    }
+
+    intervalId = setInterval(() => {
+      if (index < text.length) {
+        const char = text[index];
+        if (cursor) {
+          element.innerHTML =
+            text.slice(0, index + 1).replace(/</g, '&lt;').replace(/>/g, '&gt;') +
+            '<span class="cursor"></span>';
+        } else {
+          element.textContent = text.slice(0, index + 1);
         }
+        index++;
+      } else {
+        clearInterval(intervalId);
+        if (!cursor) {
+          element.textContent = text;
+        } else {
+          element.innerHTML =
+            text.replace(/</g, '&lt;').replace(/>/g, '&gt;') +
+            '<span class="cursor"></span>';
+        }
+        onComplete?.();
       }
-    }, speed);
-    return () => clearInterval(timer);
-  };
+    }, interval);
+  }, delay);
 
-  const cancel = setTimeout(run, delay);
+  // Return cleanup function
   return () => {
-    active = false;
-    clearTimeout(cancel);
+    clearTimeout(timer);
+    clearInterval(intervalId);
   };
 }
 
 /**
- * Multi-line typewriter — types each line sequentially.
+ * Multi-line typewriter — types lines sequentially
  */
-export function multiLineTypewriter(
-  lines: string[],
-  setter: (lines: string[]) => void,
-  options: TypewriterOptions = {}
-): () => void {
-  const { speed = 40, delay = 0 } = options;
-  let lineIdx = 0;
-  let charIdx = 0;
-  let current: string[] = [];
-  let active = true;
+export async function typewriterSequence(
+  container: HTMLElement,
+  lines: Array<{ text: string; className?: string; delay?: number }>,
+  defaultSpeed = 40
+): Promise<void> {
+  for (const line of lines) {
+    const el = document.createElement('div');
+    if (line.className) el.className = line.className;
+    container.appendChild(el);
 
-  const cancel = setTimeout(() => {
-    const timer = setInterval(() => {
-      if (!active || lineIdx >= lines.length) {
-        clearInterval(timer);
-        options.onComplete?.();
-        return;
-      }
+    await new Promise<void>((resolve) => {
+      typewriter(el, line.text, {
+        speed: defaultSpeed,
+        delay: line.delay ?? 0,
+        onComplete: resolve,
+        cursor: false,
+      });
+    });
+  }
+}
 
-      const line = lines[lineIdx];
-      if (charIdx <= line.length) {
-        current = [
-          ...current.slice(0, lineIdx),
-          line.slice(0, charIdx),
-        ];
-        setter([...current]);
-        charIdx++;
-      } else {
-        lineIdx++;
-        charIdx = 0;
-      }
-    }, speed);
-    return () => clearInterval(timer);
-  }, delay);
-
-  return () => {
-    active = false;
-    clearTimeout(cancel);
+/**
+ * React hook for typewriter animation
+ */
+export function useTypewriter(
+  texts: string[],
+  options: {
+    speed?: number;
+    deleteSpeed?: number;
+    pauseTime?: number;
+    loop?: boolean;
+  } = {}
+) {
+  // This is a utility — use in React components with useState/useEffect
+  return {
+    texts,
+    speed: options.speed ?? 60,
+    deleteSpeed: options.deleteSpeed ?? 30,
+    pauseTime: options.pauseTime ?? 2000,
+    loop: options.loop ?? true,
   };
 }
