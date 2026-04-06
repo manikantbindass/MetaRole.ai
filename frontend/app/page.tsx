@@ -1,21 +1,18 @@
-'use client';
 import HeroSection from '@/components/landing/HeroSection';
 import FeaturesSection from '@/components/landing/FeaturesSection';
 import HowItWorksSection from '@/components/landing/HowItWorksSection';
-import DemoTerminal from '@/components/landing/DemoTerminal';
-import CTASection from '@/components/landing/CTASection';
-import Navbar from '@/components/ui/Navbar';
-import Footer from '@/components/ui/Footer';
+import TerminalDemo from '@/components/landing/TerminalDemo';
+import NavBar from '@/components/layout/NavBar';
+import Footer from '@/components/layout/Footer';
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen">
-      <Navbar />
+    <main>
+      <NavBar />
       <HeroSection />
       <FeaturesSection />
       <HowItWorksSection />
-      <DemoTerminal />
-      <CTASection />
+      <TerminalDemo />
       <Footer />
     </main>
   );
