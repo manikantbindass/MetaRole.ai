@@ -1,43 +1,135 @@
-'use client'
-import Link from 'next/link'
+'use client';
+import { useState } from 'react';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+import TerminalWindow from '@/components/terminal/TerminalWindow';
+
+type OutputTab = 'resume' | 'portfolio' | 'report';
+
+const SAMPLE_RESUME = `JOHN DOE
+john.doe@email.com | github.com/johndoe | linkedin.com/in/johndoe
+
+SKILLS
+──────────────────────────────────────────────────────────────────────────────
+JavaScript, TypeScript, React, Next.js, Node.js, Python, Solidity
+PostgreSQL, MongoDB, Docker, Git, REST APIs, GraphQL
+
+EXPERIENCE
+──────────────────────────────────────────────────────────────────────────────
+Full-Stack Developer @ TechCorp                     Jan 2023 - Present
+  - Architected microservices backend handling 50K req/day
+  - Reduced page load by 40% with Next.js SSR optimization
+  - Built blockchain supply chain system with Solidity + Hardhat
+
+Junior Developer @ StartupXYZ                       Jun 2022 - Dec 2022
+  - Developed REST APIs with Node.js + Express serving 10K users
+  - Integrated Stripe payments and reduced checkout abandonment 22%
+
+PROJECTS
+──────────────────────────────────────────────────────────────────────────────
+SecureRxChain | Solidity, Hardhat, React, Node.js
+  - Blockchain-based pharmaceutical supply chain tracking system
+  - Smart contracts for immutable drug verification on Ethereum
+
+MetaRole AI | Next.js, Python, OpenAI, PostgreSQL
+  - AI-powered career co-pilot with skill graph + job matching
+  - Deployed on Vercel + Railway with CI/CD pipeline`;
 
 export default function OutputPage() {
-  const OUTPUT_ITEMS = [
-    { label: 'Resume v3 (ATS-Optimized)', file: 'resume_v3.pdf', type: 'PDF' },
-    { label: 'Portfolio Site (HTML)', file: 'portfolio.html', type: 'HTML' },
-    { label: 'Skill Gap Report', file: 'gap_report.md', type: 'MD' },
-  ]
+  const [activeTab, setActiveTab] = useState<OutputTab>('resume');
+  const [copied, setCopied] = useState(false);
+
+  const copyText = () => {
+    navigator.clipboard.writeText(SAMPLE_RESUME);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
-    <div className="min-h-screen bg-terminal-bg font-mono px-4 py-16">
-      <div className="max-w-3xl mx-auto">
-        <Link href="/dashboard" className="text-terminal-green/40 text-xs hover:text-terminal-green transition-colors">
-          ← BACK_TO_DASHBOARD
-        </Link>
-        <h1 className="text-terminal-green text-2xl font-bold tracking-wider mt-4 mb-8">
-          AI_OUTPUTS<span className="text-terminal-amber">()</span>
-        </h1>
+    <DashboardLayout>
+      <div className="output-page">
+        <div className="page-header">
+          <span className="prompt">&gt;</span> AI OUTPUTS
+        </div>
 
-        <div className="space-y-0">
-          {OUTPUT_ITEMS.map((item, i) => (
-            <div
-              key={i}
-              className="border border-terminal-green/20 p-4 flex items-center justify-between group hover:border-terminal-green/50 transition-colors"
+        <div className="output-tabs" role="tablist">
+          {(['resume', 'portfolio', 'report'] as OutputTab[]).map(tab => (
+            <button
+              key={tab}
+              role="tab"
+              aria-selected={activeTab === tab}
+              className={`dash-tab ${activeTab === tab ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab)}
             >
-              <div>
-                <div className="text-terminal-green text-sm">{item.label}</div>
-                <div className="text-terminal-green/40 text-xs mt-0.5">{item.file}</div>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-terminal-amber text-xs border border-terminal-amber/30 px-2 py-0.5">{item.type}</span>
-                <button className="text-terminal-green/50 hover:text-terminal-green text-xs tracking-widest transition-colors">
-                  [ DOWNLOAD ]
-                </button>
-              </div>
-            </div>
+              {tab.toUpperCase()}
+            </button>
           ))}
         </div>
+
+        <div role="tabpanel">
+          {activeTab === 'resume' && (
+            <TerminalWindow title="generated-resume.txt">
+              <div className="output-toolbar">
+                <span className="terminal-line">
+                  <span className="prompt">$</span> cat resume_tailored_swe.txt
+                </span>
+                <div className="output-actions">
+                  <button className="output-btn" onClick={copyText}>
+                    {copied ? '[ COPIED ✓ ]' : '[ COPY ]'}
+                  </button>
+                  <button className="output-btn">[ DOWNLOAD PDF ]</button>
+                </div>
+              </div>
+              <pre className="output-content">{SAMPLE_RESUME}</pre>
+            </TerminalWindow>
+          )}
+
+          {activeTab === 'portfolio' && (
+            <TerminalWindow title="portfolio-builder">
+              <div className="terminal-line">
+                <span className="prompt">$</span> metarole build-portfolio --deploy=vercel
+              </div>
+              <div className="portfolio-preview">
+                <div className="portfolio-info">
+                  <div className="terminal-line success">✓ Portfolio generated from GitHub + resume data</div>
+                  <div className="terminal-line success">✓ Tech stack: Next.js + Tailwind CSS</div>
+                  <div className="terminal-line success">✓ Deployed to: johndoe.vercel.app</div>
+                  <div className="terminal-line muted">Theme: Terminal Hacker (matching your brand)</div>
+                </div>
+                <div className="portfolio-actions">
+                  <button className="btn-initiate">[ PREVIEW PORTFOLIO ]</button>
+                  <button className="btn-secondary-cta">[ REDEPLOY ]</button>
+                </div>
+              </div>
+            </TerminalWindow>
+          )}
+
+          {activeTab === 'report' && (
+            <TerminalWindow title="career-report.json">
+              <div className="terminal-line">
+                <span className="prompt">$</span> metarole report --full --format=json
+              </div>
+              <pre className="output-content json-output">{JSON.stringify({
+                user: 'john_doe',
+                analyzed_at: new Date().toISOString(),
+                skills_found: 23,
+                skill_gaps: 7,
+                top_career_path: {
+                  role: 'Senior Full-Stack Engineer',
+                  probability: 0.924,
+                  timeline: '12-18 months'
+                },
+                job_matches: 47,
+                resume_score: 87.4,
+                recommendations: [
+                  'Learn TypeScript (highest ROI)',
+                  'Study System Design patterns',
+                  'Get AWS Cloud Practitioner cert'
+                ]
+              }, null, 2)}</pre>
+            </TerminalWindow>
+          )}
+        </div>
       </div>
-    </div>
-  )
+    </DashboardLayout>
+  );
 }

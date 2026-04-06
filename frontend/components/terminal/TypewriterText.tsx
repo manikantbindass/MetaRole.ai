@@ -1,62 +1,50 @@
 'use client';
-
 import { useEffect, useState } from 'react';
-import { BlinkingCursor } from './BlinkingCursor';
 
 interface TypewriterTextProps {
   text: string;
   speed?: number;
+  onComplete?: () => void;
   className?: string;
   showCursor?: boolean;
-  onComplete?: () => void;
-  delay?: number;
 }
 
-export function TypewriterText({
+export default function TypewriterText({
   text,
-  speed = 50,
+  speed = 40,
+  onComplete,
   className = '',
   showCursor = true,
-  onComplete,
-  delay = 0,
 }: TypewriterTextProps) {
-  const [displayedText, setDisplayedText] = useState('');
-  const [isComplete, setIsComplete] = useState(false);
-  const [started, setStarted] = useState(false);
+  const [displayed, setDisplayed] = useState('');
+  const [cursorOn, setCursorOn] = useState(true);
+  const [done, setDone] = useState(false);
 
   useEffect(() => {
-    if (delay > 0) {
-      const delayTimer = setTimeout(() => setStarted(true), delay);
-      return () => clearTimeout(delayTimer);
-    }
-    setStarted(true);
-  }, [delay]);
-
-  useEffect(() => {
-    if (!started) return;
-    
-    let index = 0;
-    setDisplayedText('');
-    setIsComplete(false);
-
-    const interval = setInterval(() => {
-      if (index < text.length) {
-        setDisplayedText(text.slice(0, index + 1));
-        index++;
-      } else {
-        clearInterval(interval);
-        setIsComplete(true);
+    setDisplayed('');
+    setDone(false);
+    let i = 0;
+    const t = setInterval(() => {
+      i++;
+      setDisplayed(text.slice(0, i));
+      if (i >= text.length) {
+        clearInterval(t);
+        setDone(true);
         onComplete?.();
       }
     }, speed);
+    return () => clearInterval(t);
+  }, [text, speed]);
 
-    return () => clearInterval(interval);
-  }, [text, speed, started, onComplete]);
+  useEffect(() => {
+    const t = setInterval(() => setCursorOn(v => !v), 530);
+    return () => clearInterval(t);
+  }, []);
 
   return (
-    <span className={`inline-flex items-center ${className}`}>
-      <span>{displayedText}</span>
-      {showCursor && !isComplete && <BlinkingCursor />}
+    <span className={className}>
+      {displayed}
+      {showCursor && <span className={`cursor ${cursorOn ? 'visible' : 'hidden'}`}>▋</span>}
     </span>
   );
 }
