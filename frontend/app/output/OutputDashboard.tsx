@@ -45,11 +45,11 @@ export default function OutputDashboard() {
           api.jobMatch(analysisId),
           api.generateResume(analysisId),
         ]);
-        setSkills(skillRes.skills);
-        setPredictions(predRes.predictions);
-        setJobs(jobRes.jobs as Job[]);
-        setResume(resumeRes.resume);
-      } catch (e: any) {
+                setSkills(Array.isArray(skillRes.skills) ? skillRes.skills : []);
+                setPredictions(Array.isArray(predRes.predictions) ? predRes.predictions : []);
+                setJobs(Array.isArray(jobRes.jobs) ? jobRes.jobs : []);
+                setResume(resumeRes.resume || '');
+        catch (e: any) {
         setError(e.message || 'Unknown error. Make sure the backend is running and OPENAI_API_KEY is set.');
       } finally {
         setLoading(false);
