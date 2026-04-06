@@ -1,141 +1,189 @@
 'use client';
-import { useState, useRef, DragEvent } from 'react';
-import DashboardLayout from '@/components/layout/DashboardLayout';
-import LoadingBar from '@/components/terminal/LoadingBar';
-import TypewriterText from '@/components/terminal/TypewriterText';
-
-type UploadState = 'idle' | 'dragging' | 'uploading' | 'parsing' | 'done' | 'error';
+import { useState, useRef, useCallback } from 'react';
+import Link from 'next/link';
 
 export default function UploadPage() {
-  const [state, setState] = useState<UploadState>('idle');
-  const [filename, setFilename] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [step, setStep] = useState<'idle' | 'uploading' | 'parsing' | 'done' | 'error'>('idle');
   const [logs, setLogs] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [githubUrl, setGithubUrl] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const addLog = (msg: string) => setLogs(prev => [...prev, msg]);
+  const addLog = (msg: string) => setLogs(p => [...p, `> ${msg}`]);
 
-  const handleFile = async (file: File) => {
-    if (!file) return;
-    if (!['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(file.type)) {
-      setState('error');
-      addLog('ERROR: Unsupported file type. Use PDF or DOCX.');
+  const handleFile = (f: File) => {
+    if (!['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'].includes(f.type)) {
+      addLog('ERROR: Unsupported format. Use PDF, DOCX, or TXT.');
       return;
     }
-    setFilename(file.name);
-    setState('uploading');
-    addLog(`Received: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
-    addLog('Validating file integrity...');
-
-    // Simulate upload + parsing
-    setTimeout(() => {
-      addLog('Upload complete. Initializing AI parser...');
-      setState('parsing');
-    }, 1500);
-
-    setTimeout(() => {
-      addLog('Parsing resume with GPT-4...');
-      addLog('✓ Extracted: 23 skills, 4 projects, 2 work experiences');
-      addLog('✓ Building skill graph...');
-      addLog('✓ Generating gap report...');
-      addLog('DONE. Redirecting to dashboard...');
-      setState('done');
-    }, 4000);
+    setFile(f);
+    addLog(`File loaded: ${f.name} (${(f.size / 1024).toFixed(1)} KB)`);
   };
 
-  const onDrop = (e: DragEvent<HTMLDivElement>) => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setState('idle');
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
+    setDragging(false);
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  }, []);
+
+  const handleAnalyze = async () => {
+    if (!file && !githubUrl) {
+      addLog('ERROR: No input provided. Upload a resume or enter GitHub URL.');
+      return;
+    }
+    setStep('uploading');
+    setUploading(true);
+    addLog('Initiating upload sequence...');
+
+    // Simulate progress
+    for (let i = 0; i <= 100; i += 5) {
+      await new Promise(r => setTimeout(r, 60));
+      setProgress(i);
+    }
+    addLog('Upload complete. Sending to AI parser...');
+    setStep('parsing');
+
+    const parseSteps = [
+      'Extracting text content...',
+      'Identifying skills & technologies...',
+      'Parsing work experience...',
+      'Analyzing projects...',
+      'Building skill vector...',
+      'Running career prediction model...',
+      'Analysis complete.',
+    ];
+    for (const s of parseSteps) {
+      await new Promise(r => setTimeout(r, 400));
+      addLog(s);
+    }
+
+    setStep('done');
+    setUploading(false);
   };
 
   return (
-    <DashboardLayout>
-      <div className="upload-page">
-        <div className="page-header">
-          <span className="prompt">&gt;</span> RESUME UPLOAD
+    <main className="min-h-screen bg-terminal-bg text-terminal-green font-mono pt-16">
+      <div className="scanlines" aria-hidden="true" />
+
+      {/* NAV */}
+      <nav className="fixed top-0 w-full z-50 border-b border-terminal-green/20 bg-terminal-bg/95">
+        <div className="max-w-7xl mx-auto px-4 h-12 flex items-center justify-between">
+          <Link href="/" className="text-terminal-green text-sm tracking-widest hover:text-terminal-amber transition-colors">[ METAROLE::AI ]</Link>
+          <span className="text-xs text-terminal-green/40">upload --resume</span>
         </div>
+      </nav>
 
-        <div className="upload-grid">
-          {/* Drop zone */}
+      <div className="max-w-5xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* LEFT PANEL */}
+        <div className="space-y-4">
+          <div className="border-b border-terminal-green/20 pb-3">
+            <p className="text-xs text-terminal-green/40 mb-1">// input --source</p>
+            <h1 className="text-xl font-bold tracking-widest">UPLOAD RESUME</h1>
+          </div>
+
+          {/* Drop Zone */}
           <div
-            className={`drop-zone ${state === 'dragging' ? 'dragging' : ''} ${state === 'done' ? 'done' : ''} ${state === 'error' ? 'error' : ''}`}
-            onDragOver={e => { e.preventDefault(); setState('dragging'); }}
-            onDragLeave={() => setState('idle')}
-            onDrop={onDrop}
-            onClick={() => fileInputRef.current?.click()}
-            role="button"
-            tabIndex={0}
-            aria-label="Drop resume file here or click to browse"
-            onKeyDown={e => e.key === 'Enter' && fileInputRef.current?.click()}
+            onDragOver={e => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={handleDrop}
+            onClick={() => fileRef.current?.click()}
+            className={`border-2 border-dashed p-10 text-center cursor-pointer transition-all duration-200 ${
+              dragging ? 'border-terminal-green bg-terminal-green/10' : 'border-terminal-green/30 hover:border-terminal-green/60'
+            }`}
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.docx"
-              className="sr-only"
-              onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
-              aria-label="Resume file input"
-            />
-            <div className="drop-icon">
-              {state === 'done' ? '✓' : state === 'error' ? '✗' : '↑'}
-            </div>
-            <div className="drop-title">
-              {state === 'idle' && 'DROP RESUME HERE'}
-              {state === 'dragging' && 'RELEASE TO UPLOAD'}
-              {state === 'uploading' && 'UPLOADING...'}
-              {state === 'parsing' && 'PARSING...'}
-              {state === 'done' && 'ANALYSIS COMPLETE'}
-              {state === 'error' && 'UPLOAD ERROR'}
-            </div>
-            <div className="drop-sub">
-              {state === 'idle' && 'Accepts PDF or DOCX — Max 10MB'}
-              {state === 'done' && filename}
-            </div>
-
-            {(state === 'uploading' || state === 'parsing') && (
-              <LoadingBar
-                label={state === 'uploading' ? 'Uploading' : 'Parsing with AI'}
-                duration={state === 'uploading' ? 1500 : 2500}
-              />
+            <input ref={fileRef} type="file" accept=".pdf,.docx,.txt" className="hidden" onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
+            <div className="text-4xl mb-3">{file ? '✅' : '📂'}</div>
+            {file ? (
+              <>
+                <p className="text-terminal-green text-sm font-bold">{file.name}</p>
+                <p className="text-terminal-green/40 text-xs mt-1">{(file.size / 1024).toFixed(1)} KB — Ready to parse</p>
+              </>
+            ) : (
+              <>
+                <p className="text-terminal-green/60 text-sm">DROP FILE HERE or click to browse</p>
+                <p className="text-terminal-green/30 text-xs mt-2">Supported: PDF, DOCX, TXT</p>
+              </>
             )}
           </div>
 
-          {/* Terminal log */}
-          <div className="upload-terminal">
-            <div className="terminal-header">
-              <span className="terminal-dot red" />
-              <span className="terminal-dot yellow" />
-              <span className="terminal-dot green" />
-              <span className="terminal-title">upload-parser ~ log</span>
-            </div>
-            <div className="terminal-body upload-log" role="log" aria-live="polite">
-              <div className="terminal-line">
-                <span className="prompt">$</span> metarole upload --watch
-              </div>
-              {logs.length === 0 && (
-                <div className="terminal-line muted">Waiting for file input...</div>
-              )}
-              {logs.map((log, i) => (
-                <div key={i} className={`terminal-line ${log.startsWith('✓') ? 'success' : log.startsWith('ERROR') ? 'error' : ''}`}>
-                  {log}
-                </div>
-              ))}
+          {/* GitHub URL */}
+          <div className="border border-terminal-green/30 p-4">
+            <p className="text-xs text-terminal-green/40 mb-2">// optional: connect github</p>
+            <div className="flex gap-2">
+              <span className="text-terminal-green/60 text-sm">$</span>
+              <input
+                type="url"
+                value={githubUrl}
+                onChange={e => setGithubUrl(e.target.value)}
+                placeholder="https://github.com/username"
+                className="flex-1 bg-transparent border-b border-terminal-green/30 text-terminal-green text-sm outline-none focus:border-terminal-green placeholder:text-terminal-green/20 pb-1"
+              />
             </div>
           </div>
+
+          {/* Progress bar */}
+          {uploading && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-terminal-green/60">UPLOAD PROGRESS</span>
+                <span className="text-terminal-amber">{progress}%</span>
+              </div>
+              <div className="border border-terminal-green/30 h-3 relative">
+                <div
+                  className="h-full bg-terminal-green transition-all duration-100"
+                  style={{ width: `${progress}%` }}
+                />
+                <div className="absolute inset-0 flex items-center justify-center text-[8px] text-black font-bold mix-blend-difference">
+                  {'█'.repeat(Math.floor(progress / 5)).padEnd(20, '░')}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Analyze Button */}
+          <button
+            onClick={handleAnalyze}
+            disabled={uploading}
+            className="w-full border-2 border-terminal-green py-3 text-terminal-green font-bold tracking-widest hover:bg-terminal-green hover:text-black transition-all disabled:opacity-40 disabled:cursor-not-allowed text-sm"
+          >
+            {uploading ? '[ ANALYZING... ]' : '[ ANALYZE RESUME ]'}
+          </button>
+
+          {step === 'done' && (
+            <Link
+              href="/dashboard"
+              className="block w-full border-2 border-terminal-amber py-3 text-terminal-amber font-bold tracking-widest hover:bg-terminal-amber hover:text-black transition-all text-sm text-center"
+            >
+              [ VIEW RESULTS → ]
+            </Link>
+          )}
         </div>
 
-        {state === 'done' && (
-          <div className="upload-actions">
-            <a href="/dashboard" className="btn-initiate">
-              [ VIEW DASHBOARD ]
-            </a>
-            <a href="/analyze" className="btn-secondary-cta">
-              [ RUN ANALYSIS ]
-            </a>
+        {/* RIGHT PANEL - Terminal Log */}
+        <div className="border border-terminal-green/40 bg-black/60">
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-terminal-green/20">
+            <span className="w-2 h-2 rounded-full bg-red-500" />
+            <span className="w-2 h-2 rounded-full bg-yellow-500" />
+            <span className="w-2 h-2 rounded-full bg-terminal-green" />
+            <span className="text-xs text-terminal-green/40 ml-2">metarole ~ parse-log</span>
           </div>
-        )}
+          <div className="p-4 h-80 overflow-y-auto space-y-1 text-sm">
+            {logs.length === 0 && (
+              <p className="text-terminal-green/20">// waiting for input...</p>
+            )}
+            {logs.map((l, i) => (
+              <p key={i} className={l.includes('ERROR') ? 'text-red-400' : l.includes('complete') || l.includes('DONE') ? 'text-terminal-amber' : 'text-terminal-green/70'}>{l}</p>
+            ))}
+            {step === 'done' && (
+              <p className="text-terminal-green font-bold mt-2">✓ Analysis complete. Navigate to dashboard.</p>
+            )}
+          </div>
+        </div>
       </div>
-    </DashboardLayout>
+    </main>
   );
 }
