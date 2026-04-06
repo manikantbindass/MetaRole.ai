@@ -1,0 +1,68 @@
+// frontend/lib/api.ts
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
+async function request<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(
+      `API_ERROR ${res.status} ${res.statusText}: ${text || 'No body'}`,
+    );
+  }
+
+  return res.json() as Promise<T>;
+}
+
+export const api = {
+  uploadResume: (body: { fileUrl?: string; content?: string }) =>
+    request<{ analysisId: string }>('/upload-resume', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  analyzeSkills: (analysisId: string) =>
+    request<{
+      skills: string[];
+      graph: { nodes: any[]; edges: any[] };
+    }>(`/analyze-skills?analysisId=${encodeURIComponent(analysisId)}`),
+
+  predictCareer: (analysisId: string) =>
+    request<{ predictions: { role: string; probability: number }[] }>(
+      `/predict-career?analysisId=${encodeURIComponent(analysisId)}`,
+    ),
+
+  generateResume: (analysisId: string, jobTitle?: string) =>
+    request<{ resume: string }>(`/generate-resume`, {
+      method: 'POST',
+      body: JSON.stringify({ analysisId, jobTitle }),
+    }),
+
+  generatePortfolio: (analysisId: string) =>
+    request<{ html: string }>(`/generate-portfolio`, {
+      method: 'POST',
+      body: JSON.stringify({ analysisId }),
+    }),
+
+  jobMatch: (analysisId: string) =>
+    request<{
+      jobs: {
+        id: string;
+        title: string;
+        company: string;
+        score: number;
+        location: string;
+        link?: string;
+      }[];
+    }>(`/job-match?analysisId=${encodeURIComponent(analysisId)}`),
+};
