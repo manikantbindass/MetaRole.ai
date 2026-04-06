@@ -2,46 +2,72 @@
 
 import { useState, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { api } from '../../lib/api';
 
 export default function UploadPage() {
+  const router = useRouter();
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [githubUrl, setGithubUrl] = useState('');
+  const [resumeText, setResumeText] = useState('');
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState('');
-  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragActive(false);
     const dropped = e.dataTransfer.files[0];
-    if (dropped) setFile(dropped);
+    if (dropped) readFile(dropped);
+  };
+
+  const readFile = (f: File) => {
+    setFile(f);
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      setResumeText(evt.target?.result as string || '');
+    };
+    reader.readAsText(f);
   };
 
   const handleAnalyze = async () => {
-    if (!file && !githubUrl) return;
+    const content = resumeText.trim() || file?.name || '';
+    if (!content) return;
+
     setUploading(true);
+    setError(null);
     setProgress(0);
 
-    const stages = [
-      [10, '> Uploading resume...'],
-      [25, '> Parsing document structure...'],
-      [45, '> Extracting skills & experience...'],
-      [65, '> Running AI analysis pipeline...'],
-      [80, '> Mapping career trajectories...'],
-      [95, '> Generating skill graph...'],
-      [100, '> Analysis complete.'],
+    const stages: [number, string][] = [
+      [15, '> Uploading resume...'],
+      [30, '> Parsing document structure...'],
+      [50, '> Sending to AI pipeline...'],
+      [70, '> Analysis in progress...'],
+      [90, '> Finalizing session...'],
     ];
 
-    for (const [pct, msg] of stages) {
-      await new Promise(r => setTimeout(r, 600));
-      setProgress(pct as number);
-      setStage(msg as string);
-    }
+    try {
+      // Animate progress while calling backend
+      for (const [pct, msg] of stages) {
+        setProgress(pct);
+        setStage(msg);
+        await new Promise(r => setTimeout(r, 400));
+      }
 
-    setDone(true);
+      const { analysisId } = await api.uploadResume({ content });
+      setProgress(100);
+      setStage('> Upload complete. Session created.');
+      await new Promise(r => setTimeout(r, 600));
+
+      // Redirect to output dashboard with the session ID
+      router.push(`/output?analysisId=${encodeURIComponent(analysisId)}`);
+    } catch (e: any) {
+      setError(e.message || 'Upload failed. Is the backend running?');
+      setUploading(false);
+      setProgress(0);
+    }
   };
 
   return (
@@ -75,7 +101,13 @@ export default function UploadPage() {
               onDrop={handleDrop}
               onClick={() => fileRef.current?.click()}
             >
-              <input ref={fileRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={e => e.target.files?.[0] && setFile(e.target.files[0])} />
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.txt"
+                className="hidden"
+                onChange={e => e.target.files?.[0] && readFile(e.target.files[0])}
+              />
               {file ? (
                 <div>
                   <div className="text-[#ffb000] text-2xl mb-2">◼</div>
@@ -86,39 +118,41 @@ export default function UploadPage() {
                 <div>
                   <div className="text-[#33ff00]/30 text-4xl mb-3">▲</div>
                   <p className="text-[#33ff00]/60 text-sm">DROP_FILE_HERE</p>
-                  <p className="text-[#33ff00]/30 text-xs mt-2">PDF / DOC / DOCX</p>
+                  <p className="text-[#33ff00]/30 text-xs mt-2">PDF / DOC / DOCX / TXT</p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* GitHub input */}
+          {/* Paste text */}
           <div>
-            <div className="text-xs text-[#33ff00]/40 mb-3 tracking-widest">METHOD_02: GITHUB_PROFILE</div>
-            <div className="border border-[#33ff00]/30 p-6">
-              <label className="text-xs tracking-widest text-[#33ff00]/60 block mb-3">GITHUB_URL:</label>
-              <div className="flex items-center border border-[#33ff00]/30 bg-[#0d0d0d]">
-                <span className="px-3 text-[#33ff00]/40 text-sm">{'>'}</span>
-                <input
-                  type="text"
-                  value={githubUrl}
-                  onChange={e => setGithubUrl(e.target.value)}
-                  placeholder="github.com/username"
-                  className="flex-1 bg-transparent py-3 pr-3 text-sm text-[#33ff00] placeholder:text-[#33ff00]/20 outline-none"
-                />
-              </div>
-              <p className="text-[#33ff00]/30 text-xs mt-3">MetaRole will analyze your public repos, commit history, and pinned projects.</p>
+            <div className="text-xs text-[#33ff00]/40 mb-3 tracking-widest">METHOD_02: PASTE_TEXT</div>
+            <div className="border border-[#33ff00]/30 p-4 h-full">
+              <label className="text-xs tracking-widest text-[#33ff00]/60 block mb-2">RESUME_TEXT:</label>
+              <textarea
+                value={resumeText}
+                onChange={e => setResumeText(e.target.value)}
+                placeholder="> Paste your resume content here..."
+                rows={8}
+                className="w-full bg-[#0d0d0d] border border-[#33ff00]/20 text-[#33ff00] text-xs p-3 outline-none resize-none placeholder:text-[#33ff00]/20 focus:border-[#33ff00]/50"
+              />
+              <p className="text-[#33ff00]/30 text-xs mt-2">
+                {'>'} Paste plain text for best AI parsing results.
+              </p>
             </div>
+          </div>
+        </div>
 
-            <div className="border border-[#33ff00]/30 p-4 mt-4">
-              <div className="text-xs text-[#33ff00]/40 mb-2 tracking-widest">ANALYSIS_OPTIONS:</div>
-              {['Deep skill extraction', 'Career path prediction', 'Resume auto-generation', 'Portfolio creation'].map((opt, i) => (
-                <label key={i} className="flex items-center gap-3 py-1 cursor-pointer group">
-                  <input type="checkbox" defaultChecked className="accent-[#33ff00]" />
-                  <span className="text-xs text-[#33ff00]/60 group-hover:text-[#33ff00] transition-colors">{opt}</span>
-                </label>
-              ))}
-            </div>
+        {/* Analysis options */}
+        <div className="border border-[#33ff00]/20 p-4 mt-6">
+          <div className="text-xs text-[#33ff00]/40 mb-3 tracking-widest">ANALYSIS_OPTIONS:</div>
+          <div className="grid grid-cols-2 gap-2">
+            {['Deep skill extraction', 'Career path prediction', 'Resume auto-generation', 'Job matching'].map((opt, i) => (
+              <label key={i} className="flex items-center gap-3 py-1 cursor-pointer group">
+                <input type="checkbox" defaultChecked className="accent-[#33ff00]" />
+                <span className="text-xs text-[#33ff00]/60 group-hover:text-[#33ff00] transition-colors">{opt}</span>
+              </label>
+            ))}
           </div>
         </div>
 
@@ -135,24 +169,24 @@ export default function UploadPage() {
             </div>
           )}
 
-          {done ? (
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link href="/analyze" className="flex-1 border border-[#33ff00] bg-[#33ff00]/10 py-3 text-center text-sm tracking-widest hover:bg-[#33ff00]/20 transition-all">
-                [ VIEW_ANALYSIS ]
-              </Link>
-              <Link href="/dashboard" className="flex-1 border border-[#33ff00]/30 py-3 text-center text-sm tracking-widest text-[#33ff00]/60 hover:border-[#33ff00]/60 hover:text-[#33ff00] transition-all">
-                [ GO_TO_DASHBOARD ]
-              </Link>
+          {error && (
+            <div className="border border-red-500/40 p-4 mb-6 text-xs text-red-400">
+              {'>'} ERROR: {error}
+              <p className="text-red-400/60 mt-1">Make sure the backend is running at http://localhost:8000</p>
             </div>
-          ) : (
-            <button
-              onClick={handleAnalyze}
-              disabled={!file && !githubUrl}
-              className="w-full border border-[#33ff00] bg-[#33ff00]/10 py-4 text-sm tracking-widest hover:bg-[#33ff00]/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              {uploading ? '[ ANALYZING... ]' : '[ INITIATE_ANALYSIS ]'}
-            </button>
           )}
+
+          <button
+            onClick={handleAnalyze}
+            disabled={(!file && !resumeText.trim()) || uploading}
+            className="w-full border border-[#33ff00] bg-[#33ff00]/10 py-4 text-sm tracking-widest hover:bg-[#33ff00]/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            {uploading ? '[ ANALYZING... ]' : '[ INITIATE_ANALYSIS ]'}
+          </button>
+
+          <p className="text-[#33ff00]/30 text-xs mt-3 text-center">
+            {'>'} Upload a file OR paste text above, then click INITIATE_ANALYSIS
+          </p>
         </div>
       </div>
     </main>
