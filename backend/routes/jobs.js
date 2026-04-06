@@ -1,19 +1,28 @@
 /**
- * Jobs Routes — job matching based on skills
+ * MetaRole AI — Jobs Routes
+ * Job matching and intelligent job suggestions
  */
 const express = require('express');
-const { body } = require('express-validator');
-const { jobMatch } = require('../controllers/jobsController');
-
 const router = express.Router();
+const jobsController = require('../controllers/jobsController');
 
 /**
  * POST /api/job-match
- * Body: { skills: string[], experience: number, preferredRoles?: string[], location?: string }
+ * Body: { skills: string[], targetRoles: string[], location?: string, remote?: boolean }
  */
-router.post('/job-match', [
-  body('skills').isArray({ min: 1 }).withMessage('skills must be a non-empty array'),
-  body('experience').isNumeric(),
-], jobMatch);
+router.post('/job-match', jobsController.matchJobs);
+
+/**
+ * GET /api/jobs/trending
+ * Returns trending job roles based on skill demand data
+ */
+router.get('/jobs/trending', jobsController.getTrendingJobs);
+
+/**
+ * POST /api/jobs/apply-insights
+ * Body: { jobId, resumeData, coverLetter? }
+ * Returns AI insights and application tips for a specific job
+ */
+router.post('/jobs/apply-insights', jobsController.getApplyInsights);
 
 module.exports = router;

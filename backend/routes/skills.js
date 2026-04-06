@@ -1,19 +1,27 @@
 /**
- * Skills Routes — analyze skills extracted from resume
+ * MetaRole AI — Skills Routes
+ * Skill analysis, gap detection, career prediction
  */
 const express = require('express');
-const { body } = require('express-validator');
-const { analyzeSkills } = require('../controllers/skillsController');
-
 const router = express.Router();
+const skillsController = require('../controllers/skillsController');
 
 /**
  * POST /api/analyze-skills
- * Body: { resumeText: string, githubUsername?: string }
+ * Body: { skills: string[], experience: object[], projects: object[] }
  */
-router.post('/analyze-skills', [
-  body('resumeText').notEmpty().withMessage('resumeText is required'),
-  body('githubUsername').optional().isString(),
-], analyzeSkills);
+router.post('/analyze-skills', skillsController.analyzeSkills);
+
+/**
+ * POST /api/predict-career
+ * Body: { skills: string[], experience: object[], targetRole?: string }
+ */
+router.post('/predict-career', skillsController.predictCareer);
+
+/**
+ * POST /api/skill-gap
+ * Body: { currentSkills: string[], targetRole: string }
+ */
+router.post('/skill-gap', skillsController.getSkillGap);
 
 module.exports = router;

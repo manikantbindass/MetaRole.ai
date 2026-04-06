@@ -1,45 +1,82 @@
 /**
- * Resume Controller — handle file upload and text extraction
+ * MetaRole AI — Resume Controller
+ * Orchestrates resume upload, AI parsing, generation, and portfolio creation
  */
-const { extractTextFromBuffer } = require('../services/fileParser');
-const { parseResumeWithAI } = require('../services/aiService');
-const { logger } = require('../utils/logger');
+const resumeService = require('../services/resumeService');
+const aiService = require('../services/aiService');
+const { successResponse, errorResponse } = require('../utils/response');
 
 /**
  * POST /api/upload-resume
- * Extracts text from uploaded resume and parses structured data via AI
+ * Parses an uploaded resume file using AI and returns structured data
  */
-async function uploadResume(req, res) {
+exports.uploadResume = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'NO_FILE', message: 'No file uploaded' });
+      return res.status(400).json(errorResponse('No file uploaded'));
     }
 
-    logger.info(`Processing resume: ${req.file.originalname} (${req.file.mimetype})`);
+    // Extract text from uploaded file buffer
+    const rawText = await resumeService.extractText(req.file);
 
-    // Step 1: Extract raw text from file buffer
-    const rawText = await extractTextFromBuffer(req.file.buffer, req.file.mimetype);
+    // Send to AI engine for structured parsing
+    const parsedData = await aiService.parseResume(rawText);
 
-    if (!rawText || rawText.trim().length < 50) {
-      return res.status(422).json({ error: 'PARSE_FAILED', message: 'Could not extract meaningful text from file' });
-    }
-
-    // Step 2: Parse structured data with OpenAI
-    const parsedData = await parseResumeWithAI(rawText);
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        rawText,
-        parsed: parsedData,
-        filename: req.file.originalname,
-        processedAt: new Date().toISOString(),
-      },
-    });
+    return res.status(200).json(
+      successResponse('Resume parsed successfully', { parsedData })
+    );
   } catch (err) {
-    logger.error(`uploadResume error: ${err.message}`);
-    return res.status(500).json({ error: 'UPLOAD_ERROR', message: err.message });
+    console.error('[uploadResume]', err);
+    return res.status(500).json(errorResponse(err.message));
   }
-}
+};
 
-module.exports = { uploadResume };
+/**
+ * POST /api/generate-resume
+ * Generates an ATS-optimized resume tailored to a specific job
+ */
+exports.generateResume = async (req, res) => {
+  try {
+    const { parsedData, targetJobTitle, jobDescription } = req.body;
+
+    if (!parsedData || !targetJobTitle) {
+      return res.status(400).json(errorResponse('parsedData and targetJobTitle are required'));
+    }
+
+    const generatedResume = await aiService.generateResume({
+      parsedData,
+      targetJobTitle,
+      jobDescription: jobDescription || '',
+    });
+
+    return res.status(200).json(
+      successResponse('Resume generated successfully', { resume: generatedResume })
+    );
+  } catch (err) {
+    console.error('[generateResume]', err);
+    return res.status(500).json(errorResponse(err.message));
+  }
+};
+
+/**
+ * POST /api/generate-portfolio
+ * Generates a portfolio website config/HTML based on parsed resume data
+ */
+exports.generatePortfolio = async (req, res) => {
+  try {
+    const { parsedData, theme = 'terminal' } = req.body;
+
+    if (!parsedData) {
+      return res.status(400).json(errorResponse('parsedData is required'));
+    }
+
+    const portfolio = await aiService.generatePortfolio({ parsedData, theme });
+
+    return res.status(200).json(
+      successResponse('Portfolio generated successfully', { portfolio })
+    );
+  } catch (err) {
+    console.error('[generatePortfolio]', err);
+    return res.status(500).json(errorResponse(err.message));
+  }
+};
