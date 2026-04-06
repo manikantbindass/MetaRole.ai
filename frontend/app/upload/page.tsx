@@ -1,220 +1,171 @@
 'use client';
-
-import { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useDropzone } from 'react-dropzone';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 
-type UploadState = 'idle' | 'uploading' | 'parsing' | 'done' | 'error';
-
-const PARSE_STEPS = [
-  'Extracting text from document...',
-  'Running GPT-4 skill extraction...',
-  'Building skill taxonomy...',
-  'Generating skill graph...',
-  'Analyzing career alignment...',
-  'Saving to database...',
-  'Analysis complete!',
-];
+type UploadStatus = 'idle' | 'uploading' | 'parsing' | 'done' | 'error';
 
 export default function UploadPage() {
-  const [state, setState] = useState<UploadState>('idle');
-  const [file, setFile] = useState<File | null>(null);
-  const [step, setStep] = useState(0);
+  const [status, setStatus] = useState<UploadStatus>('idle');
+  const [fileName, setFileName] = useState('');
+  const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const addLog = (msg: string) => setLogs((prev) => [...prev, msg]);
+  function addLog(msg: string) {
+    setLogs(prev => [...prev, msg]);
+  }
 
-  const simulateProcessing = () => {
-    setState('parsing');
-    let i = 0;
-    const timer = setInterval(() => {
-      if (i < PARSE_STEPS.length) {
-        addLog(PARSE_STEPS[i]);
-        setStep(i + 1);
-        i++;
-      } else {
-        clearInterval(timer);
-        setState('done');
-        addLog('>>> READY. Redirecting to dashboard...');
-      }
-    }, 700);
-  };
+  async function handleFile(file: File) {
+    setFileName(file.name);
+    setStatus('uploading');
+    setLogs([]);
+    addLog(`> file detected: ${file.name}`);
+    addLog(`> size: ${(file.size / 1024).toFixed(1)} KB | type: ${file.type}`);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      const f = acceptedFiles[0];
-      setFile(f);
-      setState('uploading');
-      setLogs([`[UPLOAD] File received: ${f.name} (${(f.size / 1024).toFixed(1)} KB)`]);
-      setTimeout(() => {
-        addLog('[UPLOAD] File transferred successfully.');
-        addLog('[PARSER] Initiating AI extraction pipeline...');
-        simulateProcessing();
-      }, 1200);
+    // Simulate upload & parse
+    for (let p = 0; p <= 100; p += 10) {
+      await new Promise(r => setTimeout(r, 120));
+      setProgress(p);
     }
-  }, []);
+    addLog('> upload complete. starting AI parse...');
+    setStatus('parsing');
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'application/pdf': ['.pdf'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'text/plain': ['.txt'],
-    },
-    maxFiles: 1,
-    disabled: state !== 'idle',
-  });
+    const parseSteps = [
+      'extracting text layers...',
+      'detecting skill entities...',
+      'mapping experience timeline...',
+      'analyzing project stack...',
+      'generating skill matrix...',
+      'running career prediction model...',
+      'identifying skill gaps...',
+      'report ready.',
+    ];
+    for (const step of parseSteps) {
+      await new Promise(r => setTimeout(r, 400));
+      addLog(`> ${step}`);
+    }
+    setStatus('done');
+  }
+
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  }
+
+  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) handleFile(file);
+  }
 
   return (
-    <div className="min-h-screen bg-terminal-bg p-4">
-      {/* Header */}
-      <div className="border-b border-terminal-border pb-3 mb-6 flex justify-between items-center">
-        <div>
-          <Link href="/" className="text-terminal-muted text-xs hover:text-terminal-green">&lt; BACK_TO_HOME</Link>
-          <h1 className="text-terminal-green text-xl font-bold glow-green mt-1">RESUME_UPLOAD</h1>
-          <div className="text-terminal-muted text-xs">&gt; Upload your resume to begin AI analysis</div>
+    <div className="min-h-screen bg-[#0a0a0a] text-[#33ff00] font-mono">
+      <header className="border-b border-[#1a1a1a] sticky top-0 bg-[#0a0a0a] z-50">
+        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+          <Link href="/" className="text-sm tracking-widest font-bold hover:opacity-80">[METAROLE.AI]</Link>
+          <Link href="/dashboard" className="text-xs text-[#555] tracking-wider hover:text-[#33ff00] transition-colors">&gt; dashboard</Link>
         </div>
-        <Link href="/dashboard">
-          <button className="btn-terminal-amber btn-terminal text-xs py-1 px-3">[ SKIP → DASHBOARD ]</button>
-        </Link>
-      </div>
+      </header>
 
-      <div className="max-w-2xl mx-auto">
-        {/* Dropzone */}
-        <AnimatePresence mode="wait">
-          {state === 'idle' && (
-            <motion.div
-              key="dropzone"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              {...getRootProps()}
-              className={`border-2 border-dashed p-12 text-center cursor-pointer transition-all ${
-                isDragActive
-                  ? 'border-terminal-green bg-green-950/20 box-glow-green'
-                  : 'border-terminal-border hover:border-terminal-green hover:bg-terminal-surface'
-              }`}
-            >
-              <input {...getInputProps()} />
-              <div className="font-mono">
-                <div className="text-6xl mb-4">{isDragActive ? '📎' : '📁'}</div>
-                <div className="text-terminal-green text-lg font-bold mb-2">
-                  {isDragActive ? '[ DROP_FILE_HERE ]' : '[ DRAG & DROP RESUME ]'}
+      <main className="max-w-5xl mx-auto px-6 py-12">
+        <div className="text-xs text-[#555] tracking-widest mb-1">&gt; metarole upload --resume</div>
+        <h1 className="text-lg font-bold tracking-wider mb-8">RESUME UPLOAD &amp; AI ANALYSIS</h1>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* DROP ZONE */}
+          <div
+            onDrop={onDrop}
+            onDragOver={e => e.preventDefault()}
+            className="border border-dashed border-[#1a8000] bg-[#111] p-12 flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-[#33ff00] transition-all"
+            onClick={() => fileRef.current?.click()}
+          >
+            <input ref={fileRef} type="file" accept=".pdf,.docx,.doc" className="hidden" onChange={onFileChange} />
+            <div className="text-4xl text-[#1a8000]">[↑]</div>
+            <div className="text-center">
+              <div className="text-sm font-bold tracking-wider mb-2">DROP RESUME HERE</div>
+              <div className="text-xs text-[#555]">Accepts PDF, DOCX, DOC</div>
+              <div className="text-xs text-[#555] mt-1">or click to browse files</div>
+            </div>
+            {fileName && (
+              <div className="border border-[#1a8000] px-4 py-2 text-xs text-[#33ff00] mt-2">
+                ✔ {fileName}
+              </div>
+            )}
+          </div>
+
+          {/* TERMINAL LOG */}
+          <div className="border border-[#1a1a1a] bg-[#111]">
+            <div className="border-b border-[#1a1a1a] px-4 py-2 flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#ff3333]" />
+              <div className="w-2.5 h-2.5 rounded-full bg-[#ffb000]" />
+              <div className="w-2.5 h-2.5 rounded-full bg-[#33ff00]" />
+              <span className="text-[#555] text-[10px] ml-2">metarole-parser</span>
+            </div>
+            <div className="p-4 h-64 overflow-y-auto space-y-1">
+              {logs.length === 0 && (
+                <div className="text-[#333] text-xs">// waiting for file input...</div>
+              )}
+              {logs.map((log, i) => (
+                <div key={i} className="text-xs text-[#33ff00]">{log}</div>
+              ))}
+              {status !== 'idle' && status !== 'done' && status !== 'error' && (
+                <div className="text-xs text-[#ffb000] animate-pulse">&gt; processing...▋</div>
+              )}
+            </div>
+
+            {/* PROGRESS */}
+            {status === 'uploading' && (
+              <div className="px-4 pb-4">
+                <div className="flex justify-between text-[10px] mb-1">
+                  <span className="text-[#555]">UPLOADING</span>
+                  <span className="text-[#33ff00]">{progress}%</span>
                 </div>
-                <div className="text-terminal-muted text-sm">
-                  Supported: PDF, DOCX, TXT
-                </div>
-                <div className="text-terminal-muted text-xs mt-2">or click to browse files</div>
-                <div className="mt-6 text-xs text-terminal-dim">
-                  <span className="text-terminal-amber">$</span> metarole upload --file ./your-resume.pdf
+                <div className="h-1 bg-[#1a1a1a]">
+                  <div className="h-full bg-[#33ff00] transition-all" style={{ width: `${progress}%` }} />
                 </div>
               </div>
-            </motion.div>
-          )}
+            )}
+          </div>
+        </div>
 
-          {(state === 'uploading' || state === 'parsing') && (
-            <motion.div
-              key="processing"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="terminal-window"
-            >
-              <div className="terminal-titlebar">
-                <div className="terminal-dot" style={{ background: '#ff5f57' }} />
-                <div className="terminal-dot" style={{ background: '#febc2e' }} />
-                <div className="terminal-dot" style={{ background: '#28c840' }} />
-                <span className="ml-2">resume_parser.py — processing</span>
-              </div>
-              <div className="terminal-body min-h-64">
-                <div className="text-terminal-amber text-xs mb-4">
-                  &gt; PROCESSING: {file?.name}
+        {/* DONE STATE */}
+        {status === 'done' && (
+          <div className="mt-8 border border-[#1a8000] bg-[#111] p-6">
+            <div className="text-xs text-[#555] mb-4">&gt; analysis complete</div>
+            <div className="text-sm font-bold text-[#33ff00] mb-6">✔ RESUME PARSED SUCCESSFULLY</div>
+            <div className="grid md:grid-cols-3 gap-4">
+              {[
+                { label: 'SKILLS DETECTED', value: '48' },
+                { label: 'EXPERIENCE', value: '3.5 YRS' },
+                { label: 'PROJECTS', value: '12' },
+              ].map(stat => (
+                <div key={stat.label} className="border border-[#1a1a1a] p-4 text-center">
+                  <div className="text-2xl font-bold text-[#33ff00]">{stat.value}</div>
+                  <div className="text-[10px] text-[#555] tracking-widest mt-1">{stat.label}</div>
                 </div>
-
-                {/* Progress */}
-                <div className="mb-4">
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-terminal-muted">PARSE_PROGRESS</span>
-                    <span className="text-terminal-green">{Math.round((step / PARSE_STEPS.length) * 100)}%</span>
-                  </div>
-                  <div className="h-2 bg-terminal-border">
-                    <motion.div
-                      className="h-full bg-terminal-green"
-                      animate={{ width: `${(step / PARSE_STEPS.length) * 100}%` }}
-                      style={{ boxShadow: '0 0 8px var(--terminal-green)' }}
-                    />
-                  </div>
-                </div>
-
-                {/* Logs */}
-                <div className="space-y-1">
-                  {logs.map((log, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -5 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className={`text-xs ${log.includes('>>>') ? 'text-terminal-green font-bold' : log.includes('ERROR') ? 'text-red' : 'text-terminal-text'}`}
-                    >
-                      {log.includes('>>>') ? '' : <span className="text-terminal-amber">[{new Date().toLocaleTimeString()}] </span>}
-                      {log}
-                    </motion.div>
-                  ))}
-                  {state === 'parsing' && <span className="cursor" />}
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {state === 'done' && (
-            <motion.div
-              key="done"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="terminal-window"
-            >
-              <div className="terminal-titlebar">
-                <span>analysis_complete.sh</span>
-              </div>
-              <div className="terminal-body">
-                <div className="text-terminal-green font-bold text-lg glow-green mb-4">
-                  [✓] ANALYSIS COMPLETE
-                </div>
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  {[
-                    { label: 'Skills Extracted', val: '47' },
-                    { label: 'Experience Years', val: '4.5' },
-                    { label: 'Projects Found', val: '12' },
-                    { label: 'Profile Score', val: '76%' },
-                  ].map((item) => (
-                    <div key={item.label} className="border border-terminal-border p-3">
-                      <div className="text-xs text-terminal-muted">{item.label}</div>
-                      <div className="text-terminal-green text-xl font-bold">{item.val}</div>
-                    </div>
-                  ))}
-                </div>
-                <Link href="/dashboard">
-                  <button className="btn-terminal w-full py-3 font-bold">[ VIEW DASHBOARD → ]</button>
-                </Link>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* GitHub option */}
-        {state === 'idle' && (
-          <div className="mt-6 border-t border-terminal-border pt-6">
-            <div className="text-center text-terminal-muted text-xs mb-3">OR CONNECT GITHUB PROFILE</div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                className="input-terminal flex-1"
-                placeholder="github.com/your-username"
-              />
-              <button className="btn-terminal btn-terminal-amber px-6">[SCAN]</button>
+              ))}
+            </div>
+            <div className="mt-6 flex gap-4">
+              <Link href="/dashboard" className="btn-terminal text-xs tracking-widest py-2.5 px-6">[ VIEW DASHBOARD ]</Link>
+              <Link href="/dashboard" className="btn-terminal-amber btn-terminal text-xs tracking-widest py-2.5 px-6">[ PREDICT CAREER ]</Link>
             </div>
           </div>
         )}
-      </div>
+
+        {/* GITHUB OPTION */}
+        <div className="mt-8 border border-[#1a1a1a] bg-[#111] p-6">
+          <div className="text-xs text-[#555] tracking-widest mb-4">&gt; alternative: connect github</div>
+          <div className="text-sm font-bold mb-4">CONNECT GITHUB PROFILE</div>
+          <div className="flex gap-3">
+            <input
+              type="text"
+              placeholder="github.com/username"
+              className="flex-1 bg-[#0a0a0a] border border-[#1a1a1a] px-4 py-2 text-xs text-[#33ff00] placeholder:text-[#333] focus:border-[#1a8000] outline-none font-mono"
+            />
+            <button className="btn-terminal text-xs tracking-widest px-6">[ ANALYZE ]</button>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
