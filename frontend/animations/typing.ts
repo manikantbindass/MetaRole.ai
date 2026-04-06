@@ -1,88 +1,72 @@
 /**
- * Typing animation utilities for MetaRole AI terminal aesthetic
+ * Typing animation utility
+ * Returns a cleanup function
  */
-
-export interface TypingOptions {
-  speed?: number;       // ms per character
-  deleteSpeed?: number; // ms per character when deleting
-  pauseAfter?: number;  // ms to pause after finishing
-  loop?: boolean;
-  onUpdate?: (text: string) => void;
-  onComplete?: () => void;
-}
-
-/**
- * Animates typing a string character by character.
- * Returns a cleanup function.
- */
-export function animateTyping(
-  lines: string[],
-  options: TypingOptions = {}
+export function typewriter(
+  target: HTMLElement,
+  text: string,
+  speed = 60,
+  onComplete?: () => void
 ): () => void {
-  const {
-    speed = 50,
-    deleteSpeed = 30,
-    pauseAfter = 1500,
-    loop = true,
-    onUpdate,
-    onComplete,
-  } = options;
-
-  let lineIndex = 0;
-  let charIndex = 0;
-  let isDeleting = false;
-  let timeout: ReturnType<typeof setTimeout>;
-  let running = true;
+  let i = 0
+  let cancelled = false
 
   function tick() {
-    if (!running) return;
-
-    const currentLine = lines[lineIndex];
-
-    if (!isDeleting) {
-      charIndex++;
-      const current = currentLine.slice(0, charIndex);
-      onUpdate?.(current);
-
-      if (charIndex === currentLine.length) {
-        onComplete?.();
-        if (loop) {
-          timeout = setTimeout(() => { isDeleting = true; tick(); }, pauseAfter);
-        }
-        return;
-      }
+    if (cancelled) return
+    if (i <= text.length) {
+      target.textContent = text.slice(0, i)
+      i++
+      setTimeout(tick, speed)
     } else {
-      charIndex--;
-      onUpdate?.(currentLine.slice(0, charIndex));
-      if (charIndex === 0) {
-        isDeleting = false;
-        lineIndex = (lineIndex + 1) % lines.length;
-      }
+      onComplete?.()
     }
-
-    timeout = setTimeout(tick, isDeleting ? deleteSpeed : speed);
   }
 
-  timeout = setTimeout(tick, speed);
-
-  return () => {
-    running = false;
-    clearTimeout(timeout);
-  };
+  tick()
+  return () => { cancelled = true }
 }
 
 /**
- * Simulates terminal command output line by line
+ * Multi-phrase typewriter loop (React hook friendly)
  */
-export async function terminalStream(
-  lines: string[],
-  onLine: (line: string, index: number) => void,
-  delay = 120
-): Promise<void> {
-  for (let i = 0; i < lines.length; i++) {
-    await new Promise<void>(resolve => setTimeout(() => {
-      onLine(lines[i], i);
-      resolve();
-    }, delay * (i + 1)));
+export function createTypingLoop(phrases: string[]) {
+  let phraseIdx = 0
+  let charIdx = 0
+  let deleting = false
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+
+  function start(setter: (val: string) => void) {
+    function tick() {
+      const phrase = phrases[phraseIdx]
+      const speed = deleting ? 40 : 80
+
+      if (!deleting && charIdx < phrase.length) {
+        setter(phrase.slice(0, charIdx + 1))
+        charIdx++
+      } else if (deleting && charIdx > 0) {
+        setter(phrase.slice(0, charIdx - 1))
+        charIdx--
+      } else if (!deleting) {
+        timeoutId = setTimeout(() => {
+          deleting = true
+          tick()
+        }, 1500)
+        return
+      } else {
+        deleting = false
+        phraseIdx = (phraseIdx + 1) % phrases.length
+        charIdx = 0
+      }
+
+      timeoutId = setTimeout(tick, speed)
+    }
+
+    tick()
   }
+
+  function stop() {
+    if (timeoutId) clearTimeout(timeoutId)
+  }
+
+  return { start, stop }
 }
