@@ -1,6 +1,6 @@
 // frontend/lib/api.ts
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  process.env.NEXT_PUBLIC_API_URL || '/api';
 
 async function request<T>(
   path: string,
