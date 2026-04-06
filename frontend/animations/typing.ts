@@ -1,42 +1,88 @@
-// Typing animation utility
-export class TypingAnimation {
-  private element: HTMLElement;
-  private text: string;
-  private speed: number;
-  private onComplete?: () => void;
+/**
+ * Typing animation utilities for MetaRole AI terminal aesthetic
+ */
 
-  constructor(
-    element: HTMLElement,
-    text: string,
-    speed = 50,
-    onComplete?: () => void
-  ) {
-    this.element = element;
-    this.text = text;
-    this.speed = speed;
-    this.onComplete = onComplete;
-  }
-
-  async start(): Promise<void> {
-    this.element.textContent = '';
-    for (let i = 0; i < this.text.length; i++) {
-      this.element.textContent += this.text[i];
-      await this.delay(this.speed);
-    }
-    this.onComplete?.();
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
+export interface TypingOptions {
+  speed?: number;       // ms per character
+  deleteSpeed?: number; // ms per character when deleting
+  pauseAfter?: number;  // ms to pause after finishing
+  loop?: boolean;
+  onUpdate?: (text: string) => void;
+  onComplete?: () => void;
 }
 
-// React hook for typing animation
-export function useTypingEffect(
-  texts: string[],
-  speed = 60,
-  deleteSpeed = 30,
-  pause = 2000
-) {
-  return { texts, speed, deleteSpeed, pause };
+/**
+ * Animates typing a string character by character.
+ * Returns a cleanup function.
+ */
+export function animateTyping(
+  lines: string[],
+  options: TypingOptions = {}
+): () => void {
+  const {
+    speed = 50,
+    deleteSpeed = 30,
+    pauseAfter = 1500,
+    loop = true,
+    onUpdate,
+    onComplete,
+  } = options;
+
+  let lineIndex = 0;
+  let charIndex = 0;
+  let isDeleting = false;
+  let timeout: ReturnType<typeof setTimeout>;
+  let running = true;
+
+  function tick() {
+    if (!running) return;
+
+    const currentLine = lines[lineIndex];
+
+    if (!isDeleting) {
+      charIndex++;
+      const current = currentLine.slice(0, charIndex);
+      onUpdate?.(current);
+
+      if (charIndex === currentLine.length) {
+        onComplete?.();
+        if (loop) {
+          timeout = setTimeout(() => { isDeleting = true; tick(); }, pauseAfter);
+        }
+        return;
+      }
+    } else {
+      charIndex--;
+      onUpdate?.(currentLine.slice(0, charIndex));
+      if (charIndex === 0) {
+        isDeleting = false;
+        lineIndex = (lineIndex + 1) % lines.length;
+      }
+    }
+
+    timeout = setTimeout(tick, isDeleting ? deleteSpeed : speed);
+  }
+
+  timeout = setTimeout(tick, speed);
+
+  return () => {
+    running = false;
+    clearTimeout(timeout);
+  };
+}
+
+/**
+ * Simulates terminal command output line by line
+ */
+export async function terminalStream(
+  lines: string[],
+  onLine: (line: string, index: number) => void,
+  delay = 120
+): Promise<void> {
+  for (let i = 0; i < lines.length; i++) {
+    await new Promise<void>(resolve => setTimeout(() => {
+      onLine(lines[i], i);
+      resolve();
+    }, delay * (i + 1)));
+  }
 }

@@ -1,36 +1,29 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { JetBrains_Mono } from 'next/font/google';
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
-  display: 'swap',
-  weight: ['300', '400', '500', '600', '700', '800'],
-});
 
 export const metadata: Metadata = {
   title: 'MetaRole AI — Your AI Career Co-Pilot',
-  description: 'AI-powered career platform that analyzes skills, predicts career paths, identifies skill gaps, and generates portfolios + resumes.',
-  keywords: ['AI career', 'resume builder', 'skill analysis', 'job matching', 'career prediction'],
+  description: 'Analyze your skills, predict career paths, identify skill gaps, and generate your portfolio — automatically.',
+  keywords: ['AI', 'career', 'resume', 'skill gap', 'job matching', 'portfolio'],
   openGraph: {
-    title: 'MetaRole AI',
-    description: 'Your AI Career Co-Pilot',
+    title: 'MetaRole AI — Your AI Career Co-Pilot',
+    description: 'AI-powered career intelligence platform',
     type: 'website',
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={jetbrainsMono.variable}>
+    <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap"
+          rel="stylesheet"
+        />
       </head>
-      <body className="bg-terminal-bg text-terminal-green font-mono antialiased">
+      <body className="font-mono bg-terminal-bg text-terminal-green antialiased">
         {/* CRT scanline overlay */}
         <div className="crt-overlay" aria-hidden="true" />
         {children}

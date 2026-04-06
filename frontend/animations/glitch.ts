@@ -1,115 +1,81 @@
 /**
- * Glitch effect animations for MetaRole AI
+ * Glitch effect utilities — programmatic glitch for elements
  */
 
-export interface GlitchOptions {
-  /** Duration of one glitch cycle (ms) */
-  duration?: number;
-  /** Number of glitch iterations */
-  iterations?: number;
-  /** Colors to use for glitch layers */
-  colors?: [string, string];
-}
+const GLITCH_CHARS = '!<>-_\\/[]{}—=+*^?#________';
 
 /**
- * Applies CSS glitch animation to element
+ * Applies a matrix-style text scramble effect on hover / trigger
  */
-export function applyGlitch(
-  element: HTMLElement,
-  options: GlitchOptions = {}
-): () => void {
-  const {
-    duration = 300,
-    iterations = Infinity,
-    colors = ['#00ffff', '#ff3b3b'],
-  } = options;
+export class TextScramble {
+  private el: HTMLElement;
+  private chars: string;
+  private resolve!: () => void;
+  private frameRequest!: number;
+  private frame = 0;
+  private queue: Array<{
+    from: string;
+    to: string;
+    start: number;
+    end: number;
+    char?: string;
+  }> = [];
 
-  element.setAttribute('data-text', element.textContent || '');
-  element.classList.add('glitch');
-
-  // Apply custom colors via CSS variables
-  element.style.setProperty('--glitch-color-1', colors[0]);
-  element.style.setProperty('--glitch-color-2', colors[1]);
-
-  if (iterations !== Infinity) {
-    const totalTime = duration * iterations;
-    const timeout = setTimeout(() => {
-      element.classList.remove('glitch');
-    }, totalTime);
-
-    return () => {
-      clearTimeout(timeout);
-      element.classList.remove('glitch');
-    };
+  constructor(el: HTMLElement) {
+    this.el = el;
+    this.chars = GLITCH_CHARS;
+    this.update = this.update.bind(this);
   }
 
-  return () => {
-    element.classList.remove('glitch');
-  };
-}
+  setText(newText: string): Promise<void> {
+    const oldText = this.el.innerText;
+    const length = Math.max(oldText.length, newText.length);
+    const promise = new Promise<void>(resolve => (this.resolve = resolve));
+    this.queue = [];
 
-/**
- * Trigger a one-shot glitch on hover
- */
-export function glitchOnHover(element: HTMLElement): () => void {
-  let cleanup: (() => void) | null = null;
+    for (let i = 0; i < length; i++) {
+      const from = oldText[i] || '';
+      const to = newText[i] || '';
+      const start = Math.floor(Math.random() * 40);
+      const end = start + Math.floor(Math.random() * 40);
+      this.queue.push({ from, to, start, end });
+    }
 
-  const handleMouseEnter = () => {
-    element.setAttribute('data-text', element.textContent || '');
-    cleanup = applyGlitch(element, { duration: 300, iterations: 3 });
-  };
+    cancelAnimationFrame(this.frameRequest);
+    this.frame = 0;
+    this.update();
+    return promise;
+  }
 
-  const handleMouseLeave = () => {
-    cleanup?.();
-    cleanup = null;
-  };
+  private update() {
+    let output = '';
+    let complete = 0;
 
-  element.addEventListener('mouseenter', handleMouseEnter);
-  element.addEventListener('mouseleave', handleMouseLeave);
+    for (let i = 0, n = this.queue.length; i < n; i++) {
+      const { from, to, start, end } = this.queue[i];
+      let { char } = this.queue[i];
 
-  return () => {
-    element.removeEventListener('mouseenter', handleMouseEnter);
-    element.removeEventListener('mouseleave', handleMouseLeave);
-    cleanup?.();
-  };
-}
-
-/**
- * Text scramble effect — randomly replaces characters before revealing
- */
-export function scrambleText(
-  element: HTMLElement,
-  finalText: string,
-  duration = 800
-): Promise<void> {
-  const chars = '!<>-_\\/[]{}—=+*^?#ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const steps = 20;
-  const stepTime = duration / steps;
-  let frame = 0;
-
-  return new Promise((resolve) => {
-    const interval = setInterval(() => {
-      const progress = frame / steps;
-      let output = '';
-
-      for (let i = 0; i < finalText.length; i++) {
-        if (finalText[i] === ' ') {
-          output += ' ';
-        } else if (i < Math.floor(progress * finalText.length)) {
-          output += finalText[i];
-        } else {
-          output += chars[Math.floor(Math.random() * chars.length)];
+      if (this.frame >= end) {
+        complete++;
+        output += to;
+      } else if (this.frame >= start) {
+        if (!char || Math.random() < 0.28) {
+          char = this.chars[Math.floor(Math.random() * this.chars.length)];
+          this.queue[i].char = char;
         }
+        output += `<span class="text-terminal-amber opacity-70">${char}</span>`;
+      } else {
+        output += from;
       }
+    }
 
-      element.textContent = output;
-      frame++;
+    this.el.innerHTML = output;
 
-      if (frame > steps) {
-        clearInterval(interval);
-        element.textContent = finalText;
-        resolve();
-      }
-    }, stepTime);
-  });
+    if (complete === this.queue.length) {
+      this.resolve();
+    } else {
+      this.frameRequest = requestAnimationFrame(this.update);
+      this.frame++;
+    }
+  }
 }

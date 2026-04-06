@@ -1,25 +1,36 @@
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-/* ── TERMINAL DESIGN SYSTEM ─────────────────────────────────────── */
+/* ── DESIGN TOKENS ─────────────────────────────────────────── */
 :root {
-  --terminal-bg:       #0a0a0a;
-  --terminal-surface:  #111111;
-  --terminal-surface2: #161616;
-  --terminal-border:   #1a1a1a;
-  --terminal-green:    #33ff00;
-  --terminal-green-dim:#1a8000;
-  --terminal-amber:    #ffb000;
-  --terminal-amber-dim:#7a5500;
-  --terminal-red:      #ff3333;
-  --terminal-cyan:     #00ffff;
-  --terminal-white:    #e0e0e0;
-  --terminal-muted:    #555555;
-  --terminal-faint:    #333333;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
 
-  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  /* Terminal Colors */
+  --terminal-bg: #0a0a0a;
+  --terminal-surface: #111111;
+  --terminal-surface-2: #141414;
+  --terminal-border: #1a1a1a;
+  --terminal-green: #33ff00;
+  --terminal-green-dim: #22aa00;
+  --terminal-amber: #ffb000;
+  --terminal-amber-dim: #cc8800;
+  --terminal-red: #ff3333;
+  --terminal-blue: #00ccff;
+  --terminal-white: #e0e0e0;
+  --terminal-muted: #666666;
 
+  /* Type Scale */
+  --text-xs:   clamp(0.65rem, 0.6rem + 0.25vw, 0.75rem);
+  --text-sm:   clamp(0.75rem, 0.7rem + 0.3vw, 0.875rem);
+  --text-base: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
+  --text-lg:   clamp(1rem, 0.9rem + 0.5vw, 1.25rem);
+  --text-xl:   clamp(1.25rem, 1rem + 1vw, 1.75rem);
+  --text-2xl:  clamp(1.75rem, 1.2rem + 2vw, 2.5rem);
+  --text-3xl:  clamp(2.25rem, 1rem + 4vw, 4rem);
+  --text-hero: clamp(2.5rem, 0.5rem + 7vw, 6rem);
+
+  /* Spacing */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -28,33 +39,31 @@
   --space-8: 2rem;
   --space-12: 3rem;
   --space-16: 4rem;
+  --space-20: 5rem;
   --space-24: 6rem;
 }
 
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/* ── BASE RESET ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  scroll-padding-top: var(--space-16);
+  text-rendering: optimizeLegibility;
 }
 
 body {
   min-height: 100dvh;
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
   background-color: var(--terminal-bg);
   color: var(--terminal-green);
-  font-family: var(--font-mono);
-  font-size: 14px;
   line-height: 1.6;
   overflow-x: hidden;
 }
 
-/* ── CRT EFFECT ─────────────────────────────────────────────────── */
+/* ── CRT SCANLINE OVERLAY ────────────────────────────────────── */
 .crt-overlay {
   position: fixed;
   inset: 0;
@@ -67,123 +76,216 @@ body {
     rgba(0, 0, 0, 0.08) 2px,
     rgba(0, 0, 0, 0.08) 4px
   );
-  animation: flicker 0.15s infinite linear;
+  animation: scanline-drift 8s linear infinite;
 }
 
-@keyframes flicker {
-  0%   { opacity: 1; }
-  48%  { opacity: 1; }
-  49%  { opacity: 0.98; }
-  50%  { opacity: 1; }
-  100% { opacity: 1; }
+@keyframes scanline-drift {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 100px; }
 }
 
-/* ── BLINK CURSOR ───────────────────────────────────────────────── */
-@keyframes blink {
-  0%, 49% { opacity: 1; }
-  50%, 100% { opacity: 0; }
+/* ── TERMINAL COMPONENTS ─────────────────────────────────────── */
+.terminal-window {
+  background: var(--terminal-surface);
+  border: 1px solid var(--terminal-green);
+  position: relative;
+  overflow: hidden;
 }
 
-.cursor-blink::after {
-  content: '▋';
+.terminal-window::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(51, 255, 0, 0.04) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.terminal-titlebar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--terminal-surface-2);
+  border-bottom: 1px solid var(--terminal-green);
+  font-size: var(--text-xs);
+  color: var(--terminal-muted);
+}
+
+.terminal-dot {
+  width: 10px;
+  height: 10px;
+  border: 1px solid;
+}
+
+.terminal-dot.red   { border-color: #ff3333; background: transparent; }
+.terminal-dot.amber { border-color: #ffb000; background: transparent; }
+.terminal-dot.green { border-color: #33ff00; background: transparent; }
+
+/* ── BLINKING CURSOR ─────────────────────────────────────────── */
+.cursor {
+  display: inline-block;
+  width: 0.6em;
+  height: 1.1em;
+  background: var(--terminal-green);
   animation: blink 1s step-end infinite;
-  color: var(--terminal-green);
+  vertical-align: text-bottom;
   margin-left: 2px;
 }
 
-/* ── GLITCH EFFECT ──────────────────────────────────────────────── */
-@keyframes glitch {
-  0%   { transform: translate(0); }
-  20%  { transform: translate(-2px, 1px); }
-  40%  { transform: translate(2px, -1px); clip-path: inset(30% 0 50% 0); }
-  60%  { transform: translate(-1px, 2px); clip-path: inset(60% 0 20% 0); }
-  80%  { transform: translate(1px, -2px); clip-path: inset(10% 0 70% 0); }
-  100% { transform: translate(0); clip-path: none; }
+.cursor-amber {
+  background: var(--terminal-amber);
 }
 
-.hover\:glitch:hover {
-  animation: glitch 0.4s ease-in-out;
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
 }
 
-/* ── TERMINAL LOADING BAR ───────────────────────────────────────── */
-@keyframes terminal-load {
-  from { width: 0%; }
-  to   { width: 100%; }
-}
-
-.terminal-loadbar {
-  height: 2px;
-  background: var(--terminal-green);
-  animation: terminal-load 1.5s ease-in-out;
-}
-
-/* ── SCROLLBAR ──────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--terminal-bg); }
-::-webkit-scrollbar-thumb { background: var(--terminal-green-dim); border-radius: 0; }
-::-webkit-scrollbar-thumb:hover { background: var(--terminal-green); }
-
-/* ── SELECTION ──────────────────────────────────────────────────── */
-::selection {
-  background: var(--terminal-green);
-  color: var(--terminal-bg);
-}
-
-/* ── FOCUS ──────────────────────────────────────────────────────── */
-:focus-visible {
-  outline: 1px solid var(--terminal-green);
-  outline-offset: 2px;
-}
-
-/* ── TERMINAL BOX ───────────────────────────────────────────────── */
-.terminal-box {
-  background: var(--terminal-surface);
-  border: 1px solid var(--terminal-green-dim);
-  padding: var(--space-4);
-  position: relative;
-}
-
-.terminal-box::before {
-  content: attr(data-title);
-  position: absolute;
-  top: -10px;
-  left: 12px;
-  background: var(--terminal-surface);
-  padding: 0 8px;
-  font-size: 11px;
-  color: var(--terminal-green);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-/* ── PROGRESS BAR ───────────────────────────────────────────────── */
-.progress-bar {
-  background: var(--terminal-faint);
-  height: 6px;
-  position: relative;
+/* ── TYPEWRITER ───────────────────────────────────────────────── */
+.typewriter {
   overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid var(--terminal-green);
+  animation:
+    typing 3.5s steps(40, end),
+    blink-caret 0.75s step-end infinite;
+}
+
+@keyframes typing {
+  from { max-width: 0; }
+  to   { max-width: 100%; }
+}
+
+@keyframes blink-caret {
+  0%, 100% { border-color: var(--terminal-green); }
+  50%       { border-color: transparent; }
+}
+
+/* ── GLITCH EFFECT ────────────────────────────────────────────── */
+.glitch {
+  position: relative;
+}
+
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.glitch:hover::before {
+  opacity: 0.8;
+  color: var(--terminal-amber);
+  clip-path: inset(20% 0 30% 0);
+  transform: translateX(-3px);
+  animation: glitch-1 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+.glitch:hover::after {
+  opacity: 0.8;
+  color: var(--terminal-blue);
+  clip-path: inset(60% 0 10% 0);
+  transform: translateX(3px);
+  animation: glitch-2 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@keyframes glitch-1 {
+  0%   { transform: translateX(0); }
+  20%  { transform: translateX(-4px); }
+  40%  { transform: translateX(4px); }
+  60%  { transform: translateX(-4px); }
+  80%  { transform: translateX(4px); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes glitch-2 {
+  0%   { transform: translateX(0); }
+  20%  { transform: translateX(4px); }
+  40%  { transform: translateX(-4px); }
+  60%  { transform: translateX(4px); }
+  80%  { transform: translateX(-4px); }
+  100% { transform: translateX(0); }
+}
+
+/* ── TERMINAL PROMPT ─────────────────────────────────────────── */
+.prompt::before {
+  content: '> ';
+  color: var(--terminal-amber);
+}
+
+.prompt-green::before {
+  color: var(--terminal-green);
+}
+
+/* ── LOADING BAR ─────────────────────────────────────────────── */
+.progress-bar {
+  height: 2px;
+  background: var(--terminal-border);
+  overflow: hidden;
+  position: relative;
 }
 
 .progress-fill {
   height: 100%;
   background: var(--terminal-green);
   transition: width 0.3s ease;
+  box-shadow: 0 0 8px var(--terminal-green);
 }
 
-/* ── BUTTON STYLES ──────────────────────────────────────────────── */
+.progress-indeterminate .progress-fill {
+  width: 40%;
+  animation: progress-slide 1.5s ease-in-out infinite;
+}
+
+@keyframes progress-slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+/* ── GLOW EFFECTS ─────────────────────────────────────────────── */
+.glow-green { text-shadow: 0 0 10px rgba(51,255,0,0.7), 0 0 20px rgba(51,255,0,0.4); }
+.glow-amber { text-shadow: 0 0 10px rgba(255,176,0,0.7), 0 0 20px rgba(255,176,0,0.4); }
+.glow-border { box-shadow: 0 0 10px rgba(51,255,0,0.3), inset 0 0 10px rgba(51,255,0,0.05); }
+
+/* ── ASCII BORDERS ────────────────────────────────────────────── */
+.ascii-box {
+  border: 1px solid var(--terminal-green);
+  padding: var(--space-4);
+  position: relative;
+}
+
+.ascii-box::before {
+  content: attr(data-label);
+  position: absolute;
+  top: -0.6em;
+  left: var(--space-4);
+  background: var(--terminal-bg);
+  padding: 0 var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--terminal-amber);
+  letter-spacing: 0.1em;
+}
+
+/* ── BUTTON STYLES ────────────────────────────────────────────── */
 .btn-terminal {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
   background: transparent;
   border: 1px solid var(--terminal-green);
   color: var(--terminal-green);
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: var(--text-sm);
+  cursor: pointer;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  cursor: pointer;
   transition: all 0.2s ease;
   text-decoration: none;
 }
@@ -191,7 +293,11 @@ body {
 .btn-terminal:hover {
   background: var(--terminal-green);
   color: var(--terminal-bg);
-  box-shadow: 0 0 20px rgba(51, 255, 0, 0.3);
+  box-shadow: 0 0 20px rgba(51,255,0,0.4);
+}
+
+.btn-terminal:active {
+  transform: translateY(1px);
 }
 
 .btn-terminal-amber {
@@ -202,14 +308,32 @@ body {
 .btn-terminal-amber:hover {
   background: var(--terminal-amber);
   color: var(--terminal-bg);
-  box-shadow: 0 0 20px rgba(255, 176, 0, 0.3);
+  box-shadow: 0 0 20px rgba(255,176,0,0.4);
 }
 
-/* ── REDUCED MOTION ─────────────────────────────────────────────── */
+/* ── SCROLLBAR ────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--terminal-bg); }
+::-webkit-scrollbar-thumb { background: var(--terminal-green-dim); }
+::-webkit-scrollbar-thumb:hover { background: var(--terminal-green); }
+
+/* ── REDUCED MOTION ───────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-  .crt-overlay { display: none; }
+}
+
+/* ── SELECTION ────────────────────────────────────────────────── */
+::selection {
+  background: rgba(51,255,0,0.3);
+  color: var(--terminal-green);
+}
+
+/* ── FOCUS ────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 1px solid var(--terminal-green);
+  outline-offset: 2px;
 }
