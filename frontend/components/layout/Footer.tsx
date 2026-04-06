@@ -1,52 +1,30 @@
 export default function Footer() {
-  const year = new Date().getFullYear()
-
   return (
-    <footer className="border-t border-terminal-green-dim bg-terminal-bg">
-      <div className="max-w-7xl mx-auto px-4 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Brand */}
-          <div>
-            <div className="text-terminal-green text-sm font-bold tracking-widest mb-3">[METAROLE_AI]</div>
-            <p className="text-terminal-muted text-xs leading-relaxed">
-              &gt;_ Your AI Career Co-Pilot.<br />
-              Analyze. Predict. Dominate.
-            </p>
-          </div>
-
-          {/* Links */}
-          <div>
-            <div className="text-terminal-amber text-xs tracking-widest mb-3 uppercase">// NAVIGATION</div>
-            <ul className="space-y-2">
-              {['HOME', 'FEATURES', 'DASHBOARD', 'UPLOAD', 'OUTPUT'].map((l) => (
-                <li key={l}>
-                  <a href="#" className="text-terminal-muted text-xs hover:text-terminal-green transition-colors">
-                    &gt;_ {l}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* System Info */}
-          <div>
-            <div className="text-terminal-amber text-xs tracking-widest mb-3 uppercase">// SYSTEM_INFO</div>
-            <div className="text-terminal-muted text-xs space-y-1 font-mono">
-              <div>VERSION: v1.0.0-alpha</div>
-              <div>STATUS: <span className="text-terminal-green">[ONLINE]</span></div>
-              <div>BUILD: production</div>
-              <div>AI_ENGINE: GPT-4o</div>
-            </div>
-          </div>
+    <footer className="border-t border-terminal-green/20 font-mono text-xs text-terminal-green/40 py-8 px-4">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-terminal-green/20">╔══╗</span>
+          <span>
+            <span className="text-terminal-green">MetaRole</span>
+            <span className="text-terminal-amber">.AI</span>
+            <span className="ml-2">— v1.0.0-beta</span>
+          </span>
+          <span className="text-terminal-green/20">╚══╝</span>
         </div>
-
-        <div className="mt-8 pt-4 border-t border-terminal-green-dim flex flex-col md:flex-row justify-between items-center gap-2">
-          <span className="text-terminal-muted text-xs">
-            &copy; {year} MetaRole AI. All systems operational.
-          </span>
-          <span className="text-terminal-muted text-xs">
-            Built with <span className="text-terminal-green">&lt;/&gt;</span> by humans + AI
-          </span>
+        <div className="flex gap-6">
+          {['GitHub', 'Docs', 'Privacy', 'Terms'].map((link) => (
+            <a
+              key={link}
+              href="#"
+              className="hover:text-terminal-green transition-colors uppercase tracking-wider"
+            >
+              {link}
+            </a>
+          ))}
+        </div>
+        <div>
+          <span className="text-terminal-green/20">© 2025 MetaRole.AI</span>
+          <span className="text-terminal-amber animate-pulse ml-1">█</span>
         </div>
       </div>
     </footer>

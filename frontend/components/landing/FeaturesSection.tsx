@@ -1,114 +1,111 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 
 const FEATURES = [
   {
     id: '01',
-    icon: '\u2b21',
     title: 'RESUME_PARSER',
-    desc: 'AI extracts skills, projects, experience from any resume format. Structured skill graph generated instantly.',
-    color: 'terminal-green',
+    desc: 'AI extracts skills, experience, and projects from any resume format. Supports PDF, DOCX, and plain text.',
+    cmd: '$ parse --input resume.pdf --extract skills,exp,projects',
   },
   {
     id: '02',
-    icon: '\u25a0',
-    title: 'SKILL_GAP_ANALYSIS',
-    desc: 'Compare your skill set against target job datasets. Identifies exact gaps with actionable learning paths.',
-    color: 'terminal-amber',
+    title: 'SKILL_GRAPH',
+    desc: 'Visualize your skills as an interactive graph. Identify clusters, strengths, and hidden connections.',
+    cmd: '$ graph --mode interactive --depth full',
   },
   {
     id: '03',
-    icon: '\u25b6',
-    title: 'CAREER_PREDICTOR',
-    desc: 'ML-powered career trajectory engine. Predicts roles + salary bands with probability scores.',
-    color: 'terminal-blue',
+    title: 'GAP_ANALYZER',
+    desc: 'Compare your skills against target roles. Get a precise gap report with priority learning paths.',
+    cmd: '$ analyze --gap --target "Senior Engineer" --output report',
   },
   {
     id: '04',
-    icon: '\u2665',
-    title: 'AI_RESUME_GEN',
-    desc: 'Generates tailored resumes per job posting. ATS-optimized. Keyword rich. Zero generic fluff.',
-    color: 'terminal-green',
+    title: 'CAREER_PREDICTOR',
+    desc: 'AI predicts your most likely career trajectories with probability scores based on market data.',
+    cmd: '$ predict --career --horizon 3y --confidence-threshold 0.8',
   },
   {
     id: '05',
-    icon: '\u25c6',
-    title: 'PORTFOLIO_GEN',
-    desc: 'Auto-generates a developer portfolio site from your GitHub + resume data. Deploy in one click.',
-    color: 'terminal-amber',
+    title: 'RESUME_GENERATOR',
+    desc: 'Generate ATS-optimized resumes tailored per job description using GPT. Zero guesswork.',
+    cmd: '$ generate --resume --job-id JD_8821 --ats-optimize',
   },
   {
     id: '06',
-    icon: '\u25cf',
-    title: 'JOB_MATCHING',
-    desc: 'Vector similarity search across 1M+ jobs. Intelligent match scoring + auto-apply capabilities.',
-    color: 'terminal-blue',
+    title: 'JOB_MATCHER',
+    desc: 'Semantic job matching using vector embeddings. Ranked by fit score, salary, and growth potential.',
+    cmd: '$ match --jobs --semantic --rank-by fit,salary,growth',
   },
 ]
 
 export default function FeaturesSection() {
-  const [visible, setVisible] = useState<boolean[]>(new Array(FEATURES.length).fill(false))
-  const refs = useRef<(HTMLDivElement | null)[]>([])
-
-  useEffect(() => {
-    const observers = refs.current.map((el, i) => {
-      if (!el) return null
-      const obs = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) {
-            setTimeout(() => setVisible((v) => { const n = [...v]; n[i] = true; return n }), i * 80)
-            obs.disconnect()
-          }
-        },
-        { threshold: 0.1 }
-      )
-      obs.observe(el)
-      return obs
-    })
-    return () => observers.forEach((o) => o?.disconnect())
-  }, [])
+  const [activeFeature, setActiveFeature] = useState(0)
 
   return (
-    <section id="features" className="py-24 px-4 border-t border-terminal-green-dim">
-      <div className="max-w-6xl mx-auto">
+    <section id="features" className="py-24 px-4 relative">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-12">
-          <div className="text-terminal-amber text-xs tracking-[0.4em] uppercase mb-3">
-            // CORE_MODULES
-          </div>
-          <h2 className="text-terminal-green text-2xl md:text-3xl font-bold tracking-widest">
-            SYSTEM_FEATURES.exe
+        <div className="font-mono mb-12">
+          <div className="text-terminal-green/40 text-xs mb-2">// MODULE LIST</div>
+          <h2 className="text-terminal-green text-2xl sm:text-3xl font-bold tracking-wider">
+            CORE_MODULES<span className="text-terminal-amber">[]</span>
           </h2>
-          <div className="terminal-progress mt-4 w-24">
-            <div className="terminal-progress-fill" style={{ width: '100%' }} />
-          </div>
+          <div className="h-px bg-gradient-to-r from-terminal-green/50 to-transparent mt-4 max-w-xs" />
         </div>
 
-        {/* Feature Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-terminal-green-dim">
-          {FEATURES.map((f, i) => (
-            <div
-              key={f.id}
-              ref={(el) => { refs.current[i] = el }}
-              className={`bg-terminal-bg p-6 group hover:bg-terminal-surface transition-all duration-200 cursor-default
-                ${visible[i] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
-                transition-all duration-500
-              `}
-            >
-              <div className="flex items-start gap-4">
-                <span className="text-terminal-amber text-xs font-bold tracking-widest opacity-50">{f.id}</span>
-                <div>
-                  <div className="text-terminal-muted text-xs mb-1">&gt;_ {f.title}</div>
-                  <div className="text-terminal-green text-xs leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    {f.desc}
-                  </div>
-                  <div className="text-terminal-text text-xs leading-relaxed group-hover:hidden">
-                    {f.desc.slice(0, 50)}...
-                  </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 border border-terminal-green/20">
+          {/* Feature List */}
+          <div className="border-r border-terminal-green/20">
+            {FEATURES.map((f, i) => (
+              <button
+                key={f.id}
+                onClick={() => setActiveFeature(i)}
+                className={`w-full text-left p-4 border-b border-terminal-green/10 font-mono transition-colors group ${
+                  activeFeature === i
+                    ? 'bg-terminal-green/10 border-l-2 border-l-terminal-green'
+                    : 'hover:bg-terminal-green/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-terminal-amber/60 text-xs">[{f.id}]</span>
+                  <span
+                    className={`text-sm tracking-wider ${
+                      activeFeature === i ? 'text-terminal-green' : 'text-terminal-green/50'
+                    }`}
+                  >
+                    {f.title}
+                  </span>
+                  {activeFeature === i && (
+                    <span className="ml-auto text-terminal-green text-xs">▶</span>
+                  )}
                 </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Feature Detail */}
+          <div className="p-6 font-mono">
+            <div className="text-terminal-amber text-xs mb-3">
+              MODULE [{FEATURES[activeFeature].id}] :: {FEATURES[activeFeature].title}
+            </div>
+            <div className="border border-terminal-green/20 p-4 mb-4 bg-terminal-bg/60">
+              <p className="text-terminal-green/70 text-sm leading-relaxed">
+                {FEATURES[activeFeature].desc}
+              </p>
+            </div>
+            <div className="bg-black/40 border border-terminal-green/10 p-3">
+              <span className="text-terminal-green/40 text-xs">USAGE:</span>
+              <div className="text-terminal-green text-xs mt-1 font-mono">
+                {FEATURES[activeFeature].cmd}
               </div>
             </div>
-          ))}
+            <div className="mt-4 flex items-center gap-2">
+              <div className="w-2 h-2 bg-terminal-green rounded-full animate-pulse" />
+              <span className="text-terminal-green/40 text-xs">MODULE ACTIVE</span>
+            </div>
+          </div>
         </div>
       </div>
     </section>
