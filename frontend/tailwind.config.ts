@@ -3,35 +3,47 @@ import type { Config } from 'tailwindcss';
 const config: Config = {
   darkMode: ['class'],
   content: [
-    './pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './components/**/*.{js,ts,jsx,tsx,mdx}',
-    './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './pages/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './app/**/*.{ts,tsx}',
+    './src/**/*.{ts,tsx}',
   ],
   theme: {
     extend: {
       fontFamily: {
         mono: ['JetBrains Mono', 'Fira Code', 'Courier New', 'monospace'],
+        sans: ['JetBrains Mono', 'monospace'],
       },
       colors: {
         terminal: {
           bg: '#0a0a0a',
-          surface: '#0f0f0f',
+          surface: '#111111',
           border: '#1a1a1a',
           green: '#33ff00',
           amber: '#ffb000',
-          dim: '#1a2a1a',
-          muted: '#4a4a4a',
+          red: '#ff3333',
+          blue: '#00aaff',
+          muted: '#555555',
           text: '#cccccc',
-          faint: '#555555',
         },
+      },
+      borderRadius: {
+        none: '0px',
+        sm: '0px',
+        DEFAULT: '0px',
+        md: '0px',
+        lg: '0px',
+        xl: '0px',
+        '2xl': '0px',
+        full: '9999px',
       },
       animation: {
         blink: 'blink 1s step-end infinite',
         typewriter: 'typewriter 3s steps(40) forwards',
         scanline: 'scanline 8s linear infinite',
-        glitch: 'glitch 0.3s ease forwards',
+        glitch: 'glitch 0.3s ease-in-out',
+        'matrix-rain': 'matrixRain 20s linear infinite',
         'pulse-green': 'pulseGreen 2s ease-in-out infinite',
-        'progress-bar': 'progressBar 2s ease-in-out forwards',
       },
       keyframes: {
         blink: {
@@ -48,20 +60,20 @@ const config: Config = {
         },
         glitch: {
           '0%': { transform: 'translate(0)' },
-          '20%': { transform: 'translate(-3px, 1px)' },
-          '40%': { transform: 'translate(3px, -1px)' },
-          '60%': { transform: 'translate(-2px, 2px)' },
-          '80%': { transform: 'translate(2px, -2px)' },
+          '20%': { transform: 'translate(-3px, 3px)' },
+          '40%': { transform: 'translate(-3px, -3px)' },
+          '60%': { transform: 'translate(3px, 3px)' },
+          '80%': { transform: 'translate(3px, -3px)' },
           '100%': { transform: 'translate(0)' },
         },
         pulseGreen: {
-          '0%, 100%': { boxShadow: '0 0 5px #33ff0033' },
-          '50%': { boxShadow: '0 0 20px #33ff0066, 0 0 40px #33ff0033' },
+          '0%, 100%': { boxShadow: '0 0 5px #33ff00, 0 0 10px #33ff00' },
+          '50%': { boxShadow: '0 0 20px #33ff00, 0 0 40px #33ff00, 0 0 80px #33ff00' },
         },
-        progressBar: {
-          from: { width: '0%' },
-          to: { width: '100%' },
-        },
+      },
+      backgroundImage: {
+        'crt-grid': 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px)',
+        'terminal-gradient': 'linear-gradient(180deg, #0a0a0a 0%, #0d1a0d 100%)',
       },
     },
   },
