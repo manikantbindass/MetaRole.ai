@@ -13,15 +13,11 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'avatars.githubusercontent.com',
       },
-    ],
-  },
-  async rewrites() {
-    return [
       {
-        source: '/api/:path*',
-        destination: 'https://metarole-backend.vercel.app/api/:path*',
+        protocol: 'https',
+        hostname: 'github.com',
       },
-    ]
+    ],
   },
 }
 
