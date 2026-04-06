@@ -1,13 +1,14 @@
-/**
- * Career Routes
- * POST /predict-career  - Predict career paths based on skills
- * GET  /career-paths    - List all available career paths
- */
-const express = require('express');
-const router = express.Router();
-const { predictCareer, getCareerPaths } = require('../controllers/careerController');
+import { Router } from 'express';
+import {
+  predictCareer,
+  generateResume,
+  generatePortfolio,
+} from '../controllers/careerController.js';
 
-router.post('/predict-career', predictCareer);
-router.get('/career-paths', getCareerPaths);
+const router = Router();
 
-module.exports = router;
+router.get('/predict-career', predictCareer);
+router.post('/generate-resume', generateResume);
+router.post('/generate-portfolio', generatePortfolio);
+
+export default router;

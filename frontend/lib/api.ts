@@ -1,130 +1,68 @@
-/**
- * MetaRole AI - API Client
- * Handles all communication with the FastAPI backend
- */
+// frontend/lib/api.ts
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_BASE}${endpoint}`, {
+async function request<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...(options.headers || {}),
     },
-    ...options,
   });
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: 'Request failed' }));
-    throw new Error(error.detail || `HTTP ${res.status}`);
+    const text = await res.text();
+    throw new Error(
+      `API_ERROR ${res.status} ${res.statusText}: ${text || 'No body'}`,
+    );
   }
 
-  return res.json();
+  return res.json() as Promise<T>;
 }
 
-// ─── Resume APIs ───────────────────────────────────────────────────────────────
+export const api = {
+  uploadResume: (body: { fileUrl?: string; content?: string }) =>
+    request<{ analysisId: string }>('/upload-resume', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 
-export async function uploadResume(file: File) {
-  const formData = new FormData();
-  formData.append('file', file);
+  analyzeSkills: (analysisId: string) =>
+    request<{
+      skills: string[];
+      graph: { nodes: any[]; edges: any[] };
+    }>(`/analyze-skills?analysisId=${encodeURIComponent(analysisId)}`),
 
-  const res = await fetch(`${API_BASE}/upload-resume`, {
-    method: 'POST',
-    body: formData,
-  });
+  predictCareer: (analysisId: string) =>
+    request<{ predictions: { role: string; probability: number }[] }>(
+      `/predict-career?analysisId=${encodeURIComponent(analysisId)}`,
+    ),
 
-  if (!res.ok) throw new Error('Upload failed');
-  return res.json();
-}
+  generateResume: (analysisId: string, jobTitle?: string) =>
+    request<{ resume: string }>(`/generate-resume`, {
+      method: 'POST',
+      body: JSON.stringify({ analysisId, jobTitle }),
+    }),
 
-export async function analyzeSkills(resumeId: string) {
-  return apiRequest<SkillAnalysisResponse>('/analyze-skills', {
-    method: 'POST',
-    body: JSON.stringify({ resume_id: resumeId }),
-  });
-}
+  generatePortfolio: (analysisId: string) =>
+    request<{ html: string }>(`/generate-portfolio`, {
+      method: 'POST',
+      body: JSON.stringify({ analysisId }),
+    }),
 
-// ─── Career APIs ───────────────────────────────────────────────────────────────
-
-export async function predictCareer(skills: string[]) {
-  return apiRequest<CareerPredictionResponse>('/predict-career', {
-    method: 'POST',
-    body: JSON.stringify({ skills }),
-  });
-}
-
-// ─── Generation APIs ───────────────────────────────────────────────────────────
-
-export async function generateResume(resumeData: ResumeData, jobDescription: string) {
-  return apiRequest<GeneratedResumeResponse>('/generate-resume', {
-    method: 'POST',
-    body: JSON.stringify({ resume_data: resumeData, job_description: jobDescription }),
-  });
-}
-
-export async function generatePortfolio(resumeData: ResumeData) {
-  return apiRequest<GeneratedPortfolioResponse>('/generate-portfolio', {
-    method: 'POST',
-    body: JSON.stringify({ resume_data: resumeData }),
-  });
-}
-
-// ─── Job Matching APIs ─────────────────────────────────────────────────────────
-
-export async function matchJobs(skills: string[], experience: number) {
-  return apiRequest<JobMatchResponse[]>('/job-match', {
-    method: 'POST',
-    body: JSON.stringify({ skills, experience_years: experience }),
-  });
-}
-
-export async function healthCheck() {
-  return apiRequest<{ status: string }>('/health');
-}
-
-// ─── Types ─────────────────────────────────────────────────────────────────────
-
-export interface SkillAnalysisResponse {
-  skills: Array<{ name: string; level: number; category: string }>;
-  gaps: Array<{ skill: string; importance: string; timeToLearn: string }>;
-  experience_years: number;
-  summary: string;
-}
-
-export interface CareerPredictionResponse {
-  predictions: Array<{
-    role: string;
-    probability: number;
-    timeframe: string;
-    required_skills: string[];
-  }>;
-}
-
-export interface ResumeData {
-  name: string;
-  email: string;
-  skills: string[];
-  experience: Array<{ company: string; role: string; duration: string; bullets: string[] }>;
-  projects: Array<{ name: string; description: string; tech: string[] }>;
-  education: Array<{ school: string; degree: string; year: string }>;
-}
-
-export interface GeneratedResumeResponse {
-  resume_text: string;
-  ats_score: number;
-  improvements: string[];
-}
-
-export interface GeneratedPortfolioResponse {
-  html: string;
-  deployed_url?: string;
-}
-
-export interface JobMatchResponse {
-  title: string;
-  company: string;
-  match_score: number;
-  salary_range: string;
-  url: string;
-  required_skills: string[];
-}
+  jobMatch: (analysisId: string) =>
+    request<{
+      jobs: {
+        id: string;
+        title: string;
+        company: string;
+        score: number;
+        location: string;
+        link?: string;
+      }[];
+    }>(`/job-match?analysisId=${encodeURIComponent(analysisId)}`),
+};

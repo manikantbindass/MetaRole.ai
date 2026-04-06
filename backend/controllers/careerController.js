@@ -1,80 +1,66 @@
-/**
- * Career Prediction Controller
- * Predicts most suitable career paths based on user skill profile
- */
-const { callOpenAI } = require('../services/openaiService');
+import { sessions } from './resumeController.js';
+import { chat } from '../services/openaiService.js';
 
-const CAREER_PATHS = [
-  'Full Stack Engineer', 'Backend Engineer', 'Frontend Engineer',
-  'DevOps Engineer', 'Cloud Architect', 'AI/ML Engineer',
-  'Data Scientist', 'Data Engineer', 'Mobile Developer',
-  'Blockchain Developer', 'Security Engineer', 'Platform Engineer',
-  'Product Manager', 'Solutions Architect', 'Site Reliability Engineer'
-];
+export async function predictCareer(req, res) {
+  const { analysisId } = req.query;
+  const sess = sessions.get(analysisId);
+  if (!sess) return res.status(404).json({ error: 'session not found' });
 
-/**
- * GET /career-paths
- */
-async function getCareerPaths(req, res) {
-  return res.status(200).json({ success: true, data: CAREER_PATHS });
-}
+  const prompt = `Given these skills: ${JSON.stringify(
+    sess.skills || [],
+  )}, return JSON array of { "role": string, "probability": number } describing likely career paths.`;
 
-/**
- * POST /predict-career
- * Body: { skillGraph: Object, experience?: string, preferences?: string }
- */
-async function predictCareer(req, res) {
   try {
-    const { skillGraph, experience, preferences } = req.body;
-
-    if (!skillGraph) {
-      return res.status(400).json({ error: 'skillGraph is required' });
-    }
-
-    const prompt = `
-Based on this skill profile, predict the most suitable career paths with probability scores.
-
-SKILL PROFILE:
-${JSON.stringify(skillGraph, null, 2)}
-
-EXPERIENCE: ${experience || 'Not specified'}
-PREFERENCES: ${preferences || 'Not specified'}
-
-Return JSON:
-{
-  "predictions": [
-    {
-      "role": string,
-      "probability": number (0-100),
-      "salaryRange": { "min": number, "max": number, "currency": "USD" },
-      "demandLevel": "very-high|high|medium|low",
-      "matchedSkills": [string],
-      "growthPotential": string,
-      "timelineToReady": string
-    }
-  ],
-  "primaryRecommendation": string,
-  "careerTrajectory": string,
-  "industryFit": [string]
-}
-
-Return top 5 predictions sorted by probability. Only valid JSON.
-`;
-
-    const rawResponse = await callOpenAI(prompt, { max_tokens: 2000 });
-    let predictions;
+    const out = await chat(prompt, 'Return ONLY strict JSON array.');
+    let predictions = [];
     try {
-      const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
-      predictions = JSON.parse(jsonMatch ? jsonMatch[0] : rawResponse);
+      predictions = JSON.parse(out);
     } catch {
-      predictions = { predictions: [], primaryRecommendation: '', careerTrajectory: '', industryFit: [] };
+      predictions = [];
     }
-
-    return res.status(200).json({ success: true, data: predictions });
-  } catch (err) {
-    console.error('[careerController] Error:', err.message);
-    return res.status(500).json({ error: 'Career prediction failed', details: err.message });
+    sess.predictions = predictions;
+    sessions.set(analysisId, sess);
+    return res.json({ predictions });
+  } catch (e) {
+    return res.status(500).json({ error: 'prediction failed' });
   }
 }
 
-module.exports = { predictCareer, getCareerPaths };
+export async function generateResume(req, res) {
+  const { analysisId, jobTitle } = req.body || {};
+  const sess = sessions.get(analysisId);
+  if (!sess) return res.status(404).json({ error: 'session not found' });
+
+  const prompt = `Using this resume text: ${
+    sess.raw
+  } and skill set: ${JSON.stringify(
+    sess.skills || [],
+  )}, generate a concise ATS-friendly resume in plain text${
+    jobTitle ? ` tailored for ${jobTitle}` : ''
+  }.`;
+
+  try {
+    const resume = await chat(prompt);
+    sess.generatedResume = resume;
+    sessions.set(analysisId, sess);
+    return res.json({ resume });
+  } catch (e) {
+    return res.status(500).json({ error: 'resume generation failed' });
+  }
+}
+
+export async function generatePortfolio(req, res) {
+  const { analysisId } = req.body || {};
+  const sess = sessions.get(analysisId);
+  if (!sess) return res.status(404).json({ error: 'session not found' });
+
+  const prompt = `Generate a minimal single-page HTML portfolio in a hacker terminal style for this candidate based on resume text: ${sess.raw}`;
+  try {
+    const html = await chat(prompt);
+    sess.portfolioHtml = html;
+    sessions.set(analysisId, sess);
+    return res.json({ html });
+  } catch (e) {
+    return res.status(500).json({ error: 'portfolio generation failed' });
+  }
+}
