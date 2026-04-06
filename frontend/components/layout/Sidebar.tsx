@@ -1,50 +1,43 @@
-import BlinkingCursor from '@/components/terminal/BlinkingCursor';
+'use client';
 
-type Pane = 'skills' | 'career' | 'jobs' | 'progress';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
-const navItems: { id: Pane; label: string; icon: string; cmd: string }[] = [
-  { id: 'skills', label: 'SKILL GRAPH', icon: '🕸', cmd: 'graph' },
-  { id: 'career', label: 'CAREER PRED', icon: '🎯', cmd: 'predict' },
-  { id: 'jobs', label: 'JOB MATCHES', icon: '💼', cmd: 'match' },
-  { id: 'progress', label: 'PROGRESS', icon: '📊', cmd: 'track' },
+const NAV_ITEMS = [
+  { path: '/dashboard', label: 'DASHBOARD', icon: '📊' },
+  { path: '/upload', label: 'UPLOAD_RESUME', icon: '📁' },
+  { path: '/analyze', label: 'ANALYZE', icon: '🔍' },
 ];
 
-interface SidebarProps {
-  activePane: Pane;
-  setActivePane: (pane: Pane) => void;
-}
+export function Sidebar() {
+  const pathname = usePathname();
 
-export default function Sidebar({ activePane, setActivePane }: SidebarProps) {
   return (
-    <aside className="w-52 border-r border-terminal-border bg-terminal-surface flex flex-col" aria-label="Dashboard navigation">
-      <div className="px-4 py-3 border-b border-terminal-border">
-        <span className="text-terminal-green font-mono text-xs">▶ METAROLE_OS</span>
-        <BlinkingCursor className="ml-1" />
+    <aside className="w-48 border-r border-terminal-border bg-terminal-bg min-h-screen hidden lg:flex flex-col">
+      <div className="p-3 border-b border-terminal-border">
+        <div className="text-terminal-green text-xs font-bold glow-green">[SYSTEM_MENU]</div>
       </div>
-
-      <nav className="flex-1 py-4">
-        {navItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setActivePane(item.id)}
-            className={`w-full text-left px-4 py-3 font-mono text-xs transition-colors flex items-center gap-3 ${
-              activePane === item.id
-                ? 'text-terminal-green bg-terminal-green/5 border-l-2 border-terminal-green'
-                : 'text-terminal-dim hover:text-terminal-green hover:bg-terminal-green/5'
+      <nav className="flex-1 p-2">
+        {NAV_ITEMS.map((item) => (
+          <Link
+            key={item.path}
+            href={item.path}
+            className={`flex items-center gap-2 px-3 py-2 text-xs font-mono transition-colors block ${
+              pathname === item.path
+                ? 'text-terminal-green border-l-2 border-terminal-green bg-terminal-surface'
+                : 'text-terminal-muted hover:text-terminal-green'
             }`}
-            aria-current={activePane === item.id ? 'page' : undefined}
           >
             <span>{item.icon}</span>
-            <div>
-              <div>{item.label}</div>
-              <div className="text-[0.6rem] text-terminal-dim">{item.cmd}</div>
-            </div>
-          </button>
+            <span>&gt; {item.label}</span>
+          </Link>
         ))}
       </nav>
-
-      <div className="px-4 py-3 border-t border-terminal-border">
-        <span className="text-terminal-dim text-[0.6rem] font-mono">SYS: ONLINE</span>
+      <div className="p-3 border-t border-terminal-border">
+        <div className="text-xs text-terminal-muted">
+          <div><span className="text-terminal-green">●</span> ONLINE</div>
+          <div className="mt-1 opacity-50">Session: Active</div>
+        </div>
       </div>
     </aside>
   );

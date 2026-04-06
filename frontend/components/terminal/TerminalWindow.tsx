@@ -1,40 +1,31 @@
+'use client';
+
 import { ReactNode } from 'react';
-import BlinkingCursor from './BlinkingCursor';
 
 interface TerminalWindowProps {
-  title: string;
+  title?: string;
   children: ReactNode;
   className?: string;
-  showControls?: boolean;
+  variant?: 'default' | 'green' | 'amber';
 }
 
-export default function TerminalWindow({
-  title,
-  children,
-  className = '',
-  showControls = true,
-}: TerminalWindowProps) {
+export function TerminalWindow({ title = 'terminal', children, className = '', variant = 'default' }: TerminalWindowProps) {
+  const borderColor = variant === 'green' ? 'var(--terminal-green)' : variant === 'amber' ? 'var(--terminal-amber)' : 'var(--terminal-border)';
+
   return (
     <div
-      className={`border border-terminal-border bg-terminal-surface flex flex-col ${
-        className
-      }`}
+      className={`terminal-window ${className}`}
+      style={{ border: `1px solid ${borderColor}` }}
     >
-      {/* Title bar */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-terminal-border bg-terminal-surface-2">
-        {showControls && (
-          <div className="flex gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
-            <div className="w-2.5 h-2.5 rounded-full bg-terminal-amber/60" />
-            <div className="w-2.5 h-2.5 rounded-full bg-terminal-green/60" />
-          </div>
-        )}
-        <span className="text-xs text-terminal-dim font-mono">{title}</span>
-        <BlinkingCursor className="ml-auto" />
+      <div className="terminal-titlebar">
+        <div className="terminal-dot" style={{ background: '#ff5f57' }} />
+        <div className="terminal-dot" style={{ background: '#febc2e' }} />
+        <div className="terminal-dot" style={{ background: '#28c840' }} />
+        <span className="ml-2 text-xs">{title}</span>
       </div>
-
-      {/* Content */}
-      <div className="flex-1 p-4 font-mono text-sm overflow-auto">{children}</div>
+      <div className="terminal-body">
+        {children}
+      </div>
     </div>
   );
 }

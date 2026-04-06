@@ -1,46 +1,53 @@
-import Link from 'next/link';
-import BlinkingCursor from '@/components/terminal/BlinkingCursor';
+'use client';
 
-export default function Header() {
+import Link from 'next/link';
+import { useState } from 'react';
+
+export function Header() {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
-    <header className="sticky top-0 z-50 border-b border-terminal-border bg-terminal-bg/95 backdrop-blur-sm">
-      <nav className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-6" aria-label="Main navigation">
-        <Link href="/" className="flex items-center gap-2 text-terminal-green font-mono text-sm hover:text-terminal-amber transition-colors">
-          <span>▶ METAROLE</span>
-          <BlinkingCursor />
+    <header className="border-b border-terminal-border bg-terminal-bg sticky top-0 z-40">
+      <div className="flex items-center justify-between px-4 py-2">
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2">
+          <span className="text-terminal-green font-bold text-sm glow-green tracking-widest">
+            [METAROLE_AI]
+          </span>
+          <span className="text-terminal-muted text-xs hidden sm:block">v2.0.0</span>
         </Link>
 
-        <div className="flex-1 hidden md:flex items-center gap-6">
-          {[
-            { href: '/#features', label: '[FEATURES]' },
-            { href: '/#how-it-works', label: '[HOW_IT_WORKS]' },
-            { href: '/#demo', label: '[DEMO]' },
-          ].map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="text-terminal-dim font-mono text-xs hover:text-terminal-green transition-colors"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </div>
+        {/* Nav */}
+        <nav className="hidden md:flex items-center gap-6 text-xs font-mono">
+          <Link href="/" className="text-terminal-muted hover:text-terminal-green transition-colors">&gt; HOME</Link>
+          <Link href="/dashboard" className="text-terminal-muted hover:text-terminal-green transition-colors">&gt; DASHBOARD</Link>
+          <Link href="/upload" className="text-terminal-muted hover:text-terminal-green transition-colors">&gt; UPLOAD</Link>
+          <Link href="/analyze" className="text-terminal-muted hover:text-terminal-green transition-colors">&gt; ANALYZE</Link>
+        </nav>
 
-        <div className="ml-auto flex items-center gap-3">
-          <Link
-            href="/dashboard"
-            className="text-terminal-dim font-mono text-xs hover:text-terminal-green transition-colors"
-          >
-            [DASHBOARD]
+        {/* CTA */}
+        <div className="flex items-center gap-2">
+          <Link href="/upload">
+            <button className="btn-terminal text-xs py-1.5 px-4">[ START ]</button>
           </Link>
-          <Link
-            href="/upload"
-            className="border border-terminal-green text-terminal-green font-mono text-xs px-4 py-2 hover:bg-terminal-green hover:text-terminal-bg transition-colors"
+          <button
+            className="md:hidden text-terminal-muted text-xs px-2"
+            onClick={() => setMenuOpen(!menuOpen)}
           >
-            [ INITIATE ]
-          </Link>
+            {menuOpen ? '[X]' : '[☰]'}
+          </button>
         </div>
-      </nav>
+      </div>
+
+      {/* Mobile menu */}
+      {menuOpen && (
+        <nav className="border-t border-terminal-border px-4 py-3 flex flex-col gap-3 text-xs font-mono md:hidden">
+          <Link href="/" className="text-terminal-muted hover:text-terminal-green">&gt; HOME</Link>
+          <Link href="/dashboard" className="text-terminal-muted hover:text-terminal-green">&gt; DASHBOARD</Link>
+          <Link href="/upload" className="text-terminal-muted hover:text-terminal-green">&gt; UPLOAD</Link>
+          <Link href="/analyze" className="text-terminal-muted hover:text-terminal-green">&gt; ANALYZE</Link>
+        </nav>
+      )}
     </header>
   );
 }
