@@ -1,27 +1,14 @@
 /**
- * MetaRole AI — Skills Routes
- * Skill analysis, gap detection, career prediction
+ * Skills Routes
+ * POST /analyze-skills   - Analyze skills from parsed resume
+ * POST /skill-gap        - Identify skill gaps for a target role
  */
 const express = require('express');
 const router = express.Router();
-const skillsController = require('../controllers/skillsController');
+const { analyzeSkills } = require('../controllers/skillsController');
+const { skillGap } = require('../controllers/skillGapController');
 
-/**
- * POST /api/analyze-skills
- * Body: { skills: string[], experience: object[], projects: object[] }
- */
-router.post('/analyze-skills', skillsController.analyzeSkills);
-
-/**
- * POST /api/predict-career
- * Body: { skills: string[], experience: object[], targetRole?: string }
- */
-router.post('/predict-career', skillsController.predictCareer);
-
-/**
- * POST /api/skill-gap
- * Body: { currentSkills: string[], targetRole: string }
- */
-router.post('/skill-gap', skillsController.getSkillGap);
+router.post('/analyze-skills', analyzeSkills);
+router.post('/skill-gap', skillGap);
 
 module.exports = router;

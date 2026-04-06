@@ -1,75 +1,54 @@
 /**
- * MetaRole AI — Skills Controller
- * Skill analysis, gap detection, career path prediction
+ * Skills Analysis Controller
+ * Processes parsed resume data to build a structured skill graph
  */
-const aiService = require('../services/aiService');
-const { successResponse, errorResponse } = require('../utils/response');
+const { callOpenAI } = require('../services/openaiService');
 
 /**
- * POST /api/analyze-skills
- * Returns skill graph nodes, proficiency levels, and category breakdown
+ * POST /analyze-skills
+ * Body: { parsedResume: Object }
  */
-exports.analyzeSkills = async (req, res) => {
+async function analyzeSkills(req, res) {
   try {
-    const { skills, experience = [], projects = [] } = req.body;
+    const { parsedResume } = req.body;
 
-    if (!skills || !Array.isArray(skills) || skills.length === 0) {
-      return res.status(400).json(errorResponse('skills array is required'));
+    if (!parsedResume) {
+      return res.status(400).json({ error: 'parsedResume is required' });
     }
 
-    const analysis = await aiService.analyzeSkills({ skills, experience, projects });
+    const prompt = `
+Analyze these skills from the resume and return a structured JSON skill graph.
 
-    return res.status(200).json(
-      successResponse('Skills analyzed', { analysis })
-    );
-  } catch (err) {
-    console.error('[analyzeSkills]', err);
-    return res.status(500).json(errorResponse(err.message));
-  }
-};
+RESUME DATA:
+${JSON.stringify(parsedResume, null, 2)}
 
-/**
- * POST /api/predict-career
- * Returns predicted career paths with confidence scores and roadmap steps
- */
-exports.predictCareer = async (req, res) => {
-  try {
-    const { skills, experience = [], targetRole } = req.body;
+Return a JSON object with this exact structure:
+{
+  "technical": [{ "name": string, "level": "beginner|intermediate|advanced|expert", "category": string, "yearsExp": number }],
+  "soft": [{ "name": string, "level": string }],
+  "domains": [string],
+  "topSkills": [string],
+  "experienceYears": number,
+  "seniorityLevel": "junior|mid|senior|lead"
+}
 
-    if (!skills || skills.length === 0) {
-      return res.status(400).json(errorResponse('skills array is required'));
+Only return valid JSON, no explanation.
+`;
+
+    const rawResponse = await callOpenAI(prompt, { max_tokens: 1500 });
+    let skillGraph;
+    try {
+      const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
+      skillGraph = JSON.parse(jsonMatch ? jsonMatch[0] : rawResponse);
+    } catch {
+      skillGraph = { technical: [], soft: [], domains: [], topSkills: [], experienceYears: 0, seniorityLevel: 'mid' };
     }
 
-    const prediction = await aiService.predictCareer({ skills, experience, targetRole });
-
-    return res.status(200).json(
-      successResponse('Career paths predicted', { prediction })
-    );
+    return res.status(200).json({ success: true, data: skillGraph });
   } catch (err) {
-    console.error('[predictCareer]', err);
-    return res.status(500).json(errorResponse(err.message));
+    console.error('[skillsController] Error:', err.message);
+    return res.status(500).json({ error: 'Failed to analyze skills', details: err.message });
   }
-};
+}
 
-/**
- * POST /api/skill-gap
- * Returns missing skills, priority order, and learning resources
- */
-exports.getSkillGap = async (req, res) => {
-  try {
-    const { currentSkills, targetRole } = req.body;
-
-    if (!currentSkills || !targetRole) {
-      return res.status(400).json(errorResponse('currentSkills and targetRole are required'));
-    }
-
-    const gapAnalysis = await aiService.getSkillGap({ currentSkills, targetRole });
-
-    return res.status(200).json(
-      successResponse('Skill gap analyzed', { gapAnalysis })
-    );
-  } catch (err) {
-    console.error('[getSkillGap]', err);
-    return res.status(500).json(errorResponse(err.message));
-  }
-};
+module.exports = { analyzeSkills };
