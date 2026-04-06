@@ -1,188 +1,159 @@
 'use client';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+type UploadStatus = 'idle' | 'uploading' | 'parsing' | 'done' | 'error';
+
 export default function UploadPage() {
+  const router = useRouter();
+  const [status, setStatus] = useState<UploadStatus>('idle');
   const [file, setFile] = useState<File | null>(null);
-  const [dragging, setDragging] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [step, setStep] = useState<'idle' | 'uploading' | 'parsing' | 'done' | 'error'>('idle');
   const [logs, setLogs] = useState<string[]>([]);
   const [githubUrl, setGithubUrl] = useState('');
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
 
-  const addLog = (msg: string) => setLogs(p => [...p, `> ${msg}`]);
+  const addLog = (msg: string) => setLogs(prev => [...prev, msg]);
 
-  const handleFile = (f: File) => {
-    if (!['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'].includes(f.type)) {
-      addLog('ERROR: Unsupported format. Use PDF, DOCX, or TXT.');
-      return;
+  const simulateUpload = async () => {
+    setStatus('uploading');
+    setLogs([]);
+    addLog('[INIT] MetaRole AI Engine v2.4.1 — Starting upload sequence...');
+    for (let i = 0; i <= 40; i += 5) {
+      await new Promise(r => setTimeout(r, 120));
+      setProgress(i);
     }
-    setFile(f);
-    addLog(`File loaded: ${f.name} (${(f.size / 1024).toFixed(1)} KB)`);
+    addLog('[OK] File received — validating format...');
+    await new Promise(r => setTimeout(r, 400));
+    addLog('[OK] Format validated: PDF/DOCX — Initiating AI parser...');
+    setStatus('parsing');
+    for (let i = 40; i <= 85; i += 5) {
+      await new Promise(r => setTimeout(r, 180));
+      setProgress(i);
+    }
+    addLog('[AI] Extracting skills, experience, education, projects...');
+    await new Promise(r => setTimeout(r, 600));
+    addLog('[AI] NLP skill extraction complete — 34 skills identified');
+    addLog('[AI] Work history parsed — 3 positions found');
+    addLog('[AI] Education profile built — B.Tech CS detected');
+    addLog('[AI] GitHub repositories linked — 12 projects analyzed');
+    for (let i = 85; i <= 100; i += 5) {
+      await new Promise(r => setTimeout(r, 100));
+      setProgress(i);
+    }
+    addLog('[DONE] Analysis complete — Redirecting to dashboard...');
+    setStatus('done');
+    setTimeout(() => router.push('/dashboard'), 1200);
   };
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
     const f = e.dataTransfer.files[0];
-    if (f) handleFile(f);
+    if (f) setFile(f);
   }, []);
 
-  const handleAnalyze = async () => {
-    if (!file && !githubUrl) {
-      addLog('ERROR: No input provided. Upload a resume or enter GitHub URL.');
-      return;
-    }
-    setStep('uploading');
-    setUploading(true);
-    addLog('Initiating upload sequence...');
-
-    // Simulate progress
-    for (let i = 0; i <= 100; i += 5) {
-      await new Promise(r => setTimeout(r, 60));
-      setProgress(i);
-    }
-    addLog('Upload complete. Sending to AI parser...');
-    setStep('parsing');
-
-    const parseSteps = [
-      'Extracting text content...',
-      'Identifying skills & technologies...',
-      'Parsing work experience...',
-      'Analyzing projects...',
-      'Building skill vector...',
-      'Running career prediction model...',
-      'Analysis complete.',
-    ];
-    for (const s of parseSteps) {
-      await new Promise(r => setTimeout(r, 400));
-      addLog(s);
-    }
-
-    setStep('done');
-    setUploading(false);
-  };
-
   return (
-    <main className="min-h-screen bg-terminal-bg text-terminal-green font-mono pt-16">
-      <div className="scanlines" aria-hidden="true" />
+    <main className="bg-terminal-bg text-terminal-green font-mono min-h-screen relative">
+      <div className="scanline-overlay pointer-events-none" />
 
       {/* NAV */}
-      <nav className="fixed top-0 w-full z-50 border-b border-terminal-green/20 bg-terminal-bg/95">
-        <div className="max-w-7xl mx-auto px-4 h-12 flex items-center justify-between">
-          <Link href="/" className="text-terminal-green text-sm tracking-widest hover:text-terminal-amber transition-colors">[ METAROLE::AI ]</Link>
-          <span className="text-xs text-terminal-green/40">upload --resume</span>
-        </div>
+      <nav className="border-b border-terminal-green/30 px-6 py-3 flex items-center justify-between">
+        <Link href="/" className="text-terminal-green font-bold tracking-widest">
+          <span className="text-terminal-amber">{'>'}</span> METAROLE<span className="text-terminal-amber">.AI</span>
+        </Link>
+        <span className="text-terminal-green/40 text-xs">UPLOAD_MODULE v2.4</span>
       </nav>
 
-      <div className="max-w-5xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* LEFT PANEL */}
-        <div className="space-y-4">
-          <div className="border-b border-terminal-green/20 pb-3">
-            <p className="text-xs text-terminal-green/40 mb-1">// input --source</p>
-            <h1 className="text-xl font-bold tracking-widest">UPLOAD RESUME</h1>
-          </div>
+      <div className="max-w-3xl mx-auto px-6 py-16">
+        {/* Header */}
+        <div className="mb-10">
+          <div className="text-terminal-amber text-xs tracking-widest mb-2">// STEP_01: UPLOAD_RESUME //</div>
+          <h1 className="text-3xl font-bold text-terminal-green mb-3">UPLOAD YOUR RESUME</h1>
+          <p className="text-terminal-green/60 text-sm">{'>'} Supports PDF, DOCX, TXT — or paste your GitHub URL to auto-pull projects</p>
+        </div>
 
-          {/* Drop Zone */}
-          <div
-            onDragOver={e => { e.preventDefault(); setDragging(true); }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={handleDrop}
-            onClick={() => fileRef.current?.click()}
-            className={`border-2 border-dashed p-10 text-center cursor-pointer transition-all duration-200 ${
-              dragging ? 'border-terminal-green bg-terminal-green/10' : 'border-terminal-green/30 hover:border-terminal-green/60'
-            }`}
-          >
-            <input ref={fileRef} type="file" accept=".pdf,.docx,.txt" className="hidden" onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
-            <div className="text-4xl mb-3">{file ? '✅' : '📂'}</div>
-            {file ? (
-              <>
-                <p className="text-terminal-green text-sm font-bold">{file.name}</p>
-                <p className="text-terminal-green/40 text-xs mt-1">{(file.size / 1024).toFixed(1)} KB — Ready to parse</p>
-              </>
-            ) : (
-              <>
-                <p className="text-terminal-green/60 text-sm">DROP FILE HERE or click to browse</p>
-                <p className="text-terminal-green/30 text-xs mt-2">Supported: PDF, DOCX, TXT</p>
-              </>
-            )}
-          </div>
-
-          {/* GitHub URL */}
-          <div className="border border-terminal-green/30 p-4">
-            <p className="text-xs text-terminal-green/40 mb-2">// optional: connect github</p>
-            <div className="flex gap-2">
-              <span className="text-terminal-green/60 text-sm">$</span>
-              <input
-                type="url"
-                value={githubUrl}
-                onChange={e => setGithubUrl(e.target.value)}
-                placeholder="https://github.com/username"
-                className="flex-1 bg-transparent border-b border-terminal-green/30 text-terminal-green text-sm outline-none focus:border-terminal-green placeholder:text-terminal-green/20 pb-1"
-              />
+        {/* Drop Zone */}
+        <div
+          onDrop={onDrop}
+          onDragOver={e => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          className={`border-2 border-dashed p-12 text-center transition-all cursor-pointer mb-6 ${
+            dragging ? 'border-terminal-green bg-terminal-green/10' : 'border-terminal-green/30 hover:border-terminal-green/60'
+          }`}
+          onClick={() => document.getElementById('file-input')?.click()}
+        >
+          <input
+            id="file-input"
+            type="file"
+            accept=".pdf,.docx,.txt"
+            className="hidden"
+            onChange={e => setFile(e.target.files?.[0] || null)}
+          />
+          <div className="text-4xl mb-4 text-terminal-green/40">{file ? '◈' : '▲'}</div>
+          {file ? (
+            <div>
+              <p className="text-terminal-green font-bold">{file.name}</p>
+              <p className="text-terminal-green/50 text-xs mt-1">{(file.size / 1024).toFixed(1)} KB — Ready to parse</p>
             </div>
-          </div>
-
-          {/* Progress bar */}
-          {uploading && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="text-terminal-green/60">UPLOAD PROGRESS</span>
-                <span className="text-terminal-amber">{progress}%</span>
-              </div>
-              <div className="border border-terminal-green/30 h-3 relative">
-                <div
-                  className="h-full bg-terminal-green transition-all duration-100"
-                  style={{ width: `${progress}%` }}
-                />
-                <div className="absolute inset-0 flex items-center justify-center text-[8px] text-black font-bold mix-blend-difference">
-                  {'█'.repeat(Math.floor(progress / 5)).padEnd(20, '░')}
-                </div>
-              </div>
+          ) : (
+            <div>
+              <p className="text-terminal-green/70 mb-1">DROP_FILE_HERE or CLICK_TO_BROWSE</p>
+              <p className="text-terminal-green/40 text-xs">PDF · DOCX · TXT — max 10MB</p>
             </div>
           )}
+        </div>
 
-          {/* Analyze Button */}
+        {/* GitHub URL */}
+        <div className="mb-6">
+          <label className="text-terminal-amber text-xs tracking-wider block mb-2">{'>'} GITHUB_PROFILE_URL (optional)</label>
+          <input
+            type="url"
+            value={githubUrl}
+            onChange={e => setGithubUrl(e.target.value)}
+            placeholder="https://github.com/username"
+            className="w-full border border-terminal-green/30 bg-transparent text-terminal-green px-4 py-2 text-sm focus:border-terminal-green outline-none"
+          />
+        </div>
+
+        {/* Progress / Logs */}
+        {status !== 'idle' && (
+          <div className="border border-terminal-green/30 mb-6">
+            <div className="px-4 py-2 bg-terminal-green/10 border-b border-terminal-green/30 flex items-center justify-between">
+              <span className="text-xs text-terminal-green/70">SYSTEM_LOG</span>
+              <span className="text-terminal-amber text-xs">{progress}%</span>
+            </div>
+            <div className="h-1 bg-terminal-green/10">
+              <div className="h-full bg-terminal-green transition-all duration-200" style={{ width: `${progress}%` }} />
+            </div>
+            <div className="p-4 font-mono text-xs space-y-1 max-h-48 overflow-y-auto">
+              {logs.map((log, i) => (
+                <p key={i} className={log.startsWith('[AI]') ? 'text-terminal-amber' : log.startsWith('[DONE]') ? 'text-terminal-green font-bold' : 'text-terminal-green/70'}>
+                  {log}
+                </p>
+              ))}
+              {status !== 'done' && <span className="blink-cursor text-terminal-green">█</span>}
+            </div>
+          </div>
+        )}
+
+        {/* Action */}
+        {status === 'idle' && (
           <button
-            onClick={handleAnalyze}
-            disabled={uploading}
-            className="w-full border-2 border-terminal-green py-3 text-terminal-green font-bold tracking-widest hover:bg-terminal-green hover:text-black transition-all disabled:opacity-40 disabled:cursor-not-allowed text-sm"
+            onClick={simulateUpload}
+            disabled={!file && !githubUrl}
+            className="w-full border-2 border-terminal-green py-4 text-terminal-green font-bold tracking-widest hover:bg-terminal-green hover:text-terminal-bg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            {uploading ? '[ ANALYZING... ]' : '[ ANALYZE RESUME ]'}
+            [ ANALYZE_RESUME ]
           </button>
+        )}
 
-          {step === 'done' && (
-            <Link
-              href="/dashboard"
-              className="block w-full border-2 border-terminal-amber py-3 text-terminal-amber font-bold tracking-widest hover:bg-terminal-amber hover:text-black transition-all text-sm text-center"
-            >
-              [ VIEW RESULTS → ]
-            </Link>
-          )}
-        </div>
-
-        {/* RIGHT PANEL - Terminal Log */}
-        <div className="border border-terminal-green/40 bg-black/60">
-          <div className="flex items-center gap-2 px-4 py-2 border-b border-terminal-green/20">
-            <span className="w-2 h-2 rounded-full bg-red-500" />
-            <span className="w-2 h-2 rounded-full bg-yellow-500" />
-            <span className="w-2 h-2 rounded-full bg-terminal-green" />
-            <span className="text-xs text-terminal-green/40 ml-2">metarole ~ parse-log</span>
+        {status === 'done' && (
+          <div className="text-terminal-green text-center py-4 font-bold">
+            ✓ ANALYSIS COMPLETE — Loading Dashboard...
           </div>
-          <div className="p-4 h-80 overflow-y-auto space-y-1 text-sm">
-            {logs.length === 0 && (
-              <p className="text-terminal-green/20">// waiting for input...</p>
-            )}
-            {logs.map((l, i) => (
-              <p key={i} className={l.includes('ERROR') ? 'text-red-400' : l.includes('complete') || l.includes('DONE') ? 'text-terminal-amber' : 'text-terminal-green/70'}>{l}</p>
-            ))}
-            {step === 'done' && (
-              <p className="text-terminal-green font-bold mt-2">✓ Analysis complete. Navigate to dashboard.</p>
-            )}
-          </div>
-        </div>
+        )}
       </div>
     </main>
   );

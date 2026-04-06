@@ -3,236 +3,270 @@ import { useState } from 'react';
 import Link from 'next/link';
 
 const SKILLS = [
-  { name: 'JavaScript', level: 92, category: 'Frontend' },
-  { name: 'React', level: 88, category: 'Frontend' },
+  { name: 'JavaScript', level: 90, category: 'Frontend' },
+  { name: 'React / Next.js', level: 85, category: 'Frontend' },
   { name: 'Node.js', level: 78, category: 'Backend' },
-  { name: 'Python', level: 71, category: 'AI/ML' },
-  { name: 'TypeScript', level: 83, category: 'Frontend' },
+  { name: 'Solidity', level: 72, category: 'Blockchain' },
+  { name: 'Python', level: 70, category: 'AI/ML' },
   { name: 'PostgreSQL', level: 65, category: 'Database' },
-  { name: 'Docker', level: 45, category: 'DevOps' },
-  { name: 'GraphQL', level: 32, category: 'Backend' },
+  { name: 'Docker / K8s', level: 60, category: 'DevOps' },
+  { name: 'LangChain', level: 45, category: 'AI/ML' },
 ];
 
 const GAPS = [
-  { skill: 'GraphQL', priority: 'HIGH', eta: '3 weeks' },
-  { skill: 'System Design', priority: 'HIGH', eta: '4 weeks' },
-  { skill: 'Docker/K8s', priority: 'MED', eta: '2 weeks' },
-  { skill: 'Redis', priority: 'MED', eta: '1 week' },
-  { skill: 'AWS Lambda', priority: 'LOW', eta: '3 weeks' },
+  { skill: 'Rust', priority: 'HIGH', est: '3 months' },
+  { skill: 'GraphQL', priority: 'MED', est: '6 weeks' },
+  { skill: 'Redis', priority: 'MED', est: '4 weeks' },
+  { skill: 'Kubernetes Advanced', priority: 'LOW', est: '2 months' },
 ];
 
 const JOBS = [
-  { title: 'Senior Full-Stack Engineer', company: 'Vercel', match: 94, loc: 'Remote', salary: '$140k–$180k' },
-  { title: 'Frontend Architect', company: 'Linear', match: 89, loc: 'Remote', salary: '$130k–$160k' },
-  { title: 'Software Engineer II', company: 'Stripe', match: 85, loc: 'SF / Remote', salary: '$160k–$200k' },
-  { title: 'Full-Stack Developer', company: 'Notion', match: 82, loc: 'Remote', salary: '$120k–$150k' },
-  { title: 'React Engineer', company: 'Figma', match: 79, loc: 'SF', salary: '$135k–$170k' },
+  { title: 'Senior Full-Stack Engineer', company: 'Vercel', match: 94, location: 'Remote', tags: ['Next.js', 'TypeScript', 'Edge'] },
+  { title: 'Blockchain Developer', company: 'Coinbase', match: 88, location: 'San Francisco', tags: ['Solidity', 'Web3', 'DeFi'] },
+  { title: 'AI Platform Engineer', company: 'Hugging Face', match: 81, location: 'Remote', tags: ['Python', 'LLMs', 'FastAPI'] },
+  { title: 'DevOps Engineer', company: 'HashiCorp', match: 76, location: 'Remote', tags: ['K8s', 'Terraform', 'CI/CD'] },
 ];
 
-const CAREER_PATHS = [
-  { role: 'Full-Stack Engineer', prob: 92, color: '#33ff00' },
-  { role: 'Frontend Architect', prob: 87, color: '#ffb000' },
-  { role: 'DevOps Engineer', prob: 71, color: '#33ff00' },
-  { role: 'AI/ML Engineer', prob: 55, color: '#ffb000' },
-  { role: 'Solutions Architect', prob: 48, color: '#33ff00' },
+const PATHS = [
+  { role: 'Senior Full-Stack Developer', probability: 94, timeline: '6-12 months', icon: '◈' },
+  { role: 'Blockchain / Web3 Developer', probability: 88, timeline: '3-6 months', icon: '⟁' },
+  { role: 'AI/ML Engineer', probability: 72, timeline: '12-18 months', icon: '▲' },
+  { role: 'DevOps / Platform Engineer', probability: 68, timeline: '6-12 months', icon: '◐' },
 ];
 
-export default function DashboardPage() {
-  const [activePane, setActivePane] = useState<'skills' | 'career' | 'jobs' | 'progress'>('skills');
+type Tab = 'skills' | 'gaps' | 'jobs' | 'paths';
+
+export default function Dashboard() {
+  const [tab, setTab] = useState<Tab>('skills');
 
   return (
-    <main className="min-h-screen bg-terminal-bg text-terminal-green font-mono">
-      <div className="scanlines" aria-hidden="true" />
+    <main className="bg-terminal-bg text-terminal-green font-mono min-h-screen">
+      <div className="scanline-overlay pointer-events-none" />
 
-      {/* TOP BAR */}
-      <header className="fixed top-0 w-full z-50 border-b border-terminal-green/20 bg-terminal-bg/95">
-        <div className="flex items-center justify-between px-4 h-12">
-          <Link href="/" className="text-terminal-green text-sm tracking-widest">[ METAROLE::AI ]</Link>
-          <div className="flex gap-1">
-            {(['skills', 'career', 'jobs', 'progress'] as const).map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActivePane(tab)}
-                className={`px-3 py-1 text-xs tracking-wider border transition-all ${
-                  activePane === tab
-                    ? 'border-terminal-green bg-terminal-green text-black font-bold'
-                    : 'border-terminal-green/30 text-terminal-green/60 hover:border-terminal-green/60'
-                }`}
-              >
-                {tab.toUpperCase()}
-              </button>
-            ))}
-          </div>
-          <Link href="/upload" className="text-xs text-terminal-amber border border-terminal-amber px-3 py-1 hover:bg-terminal-amber hover:text-black transition-all">
-            NEW SCAN
-          </Link>
+      {/* NAV */}
+      <nav className="border-b border-terminal-green/30 px-6 py-3 flex items-center justify-between sticky top-0 bg-terminal-bg/95 z-50">
+        <Link href="/" className="text-terminal-green font-bold tracking-widest">
+          <span className="text-terminal-amber">{'>'}</span> METAROLE<span className="text-terminal-amber">.AI</span>
+        </Link>
+        <div className="flex items-center gap-4 text-xs">
+          <Link href="/upload" className="text-terminal-green/60 hover:text-terminal-green">[UPLOAD]</Link>
+          <Link href="/output" className="text-terminal-amber hover:text-terminal-amber/80">[GENERATE_RESUME]</Link>
         </div>
-      </header>
+      </nav>
 
-      <div className="pt-14 flex h-screen">
-        {/* SIDEBAR */}
-        <aside className="w-52 border-r border-terminal-green/20 p-4 flex-shrink-0 overflow-y-auto">
-          <p className="text-xs text-terminal-green/40 mb-4">// user@metarole</p>
-          <div className="space-y-1 text-xs">
-            {[
-              { label: 'IDENTITY', val: 'john_doe' },
-              { label: 'LEVEL', val: 'Mid-Senior' },
-              { label: 'SCORE', val: '847 / 1000' },
-              { label: 'SKILLS', val: '23 detected' },
-              { label: 'GAPS', val: '5 critical' },
-              { label: 'JOBS', val: '14 matched' },
-            ].map(item => (
-              <div key={item.label} className="flex justify-between border-b border-terminal-green/10 py-1">
-                <span className="text-terminal-green/40">{item.label}</span>
-                <span className="text-terminal-green">{item.val}</span>
-              </div>
-            ))}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Dashboard Header */}
+        <div className="mb-8">
+          <div className="text-terminal-amber text-xs tracking-widest mb-1">// CAREER_INTELLIGENCE_DASHBOARD //</div>
+          <h1 className="text-2xl font-bold">CAREER OS — <span className="text-terminal-amber">ACTIVE SESSION</span></h1>
+          <div className="flex items-center gap-6 mt-3 text-xs text-terminal-green/50">
+            <span>● PROFILE: manikantbindass</span>
+            <span>● SKILLS ANALYZED: 34</span>
+            <span>● JOB MATCHES: 142</span>
+            <span>● LAST_SYNC: just now</span>
           </div>
-          <div className="mt-6 space-y-2">
-            <Link href="/output" className="block text-xs text-terminal-amber border border-terminal-amber/40 px-2 py-1.5 hover:bg-terminal-amber hover:text-black transition-all text-center">
-              GEN RESUME
-            </Link>
-            <button className="w-full text-xs text-terminal-green border border-terminal-green/40 px-2 py-1.5 hover:bg-terminal-green hover:text-black transition-all">
-              PORTFOLIO
-            </button>
-          </div>
-        </aside>
+        </div>
 
-        {/* MAIN PANE */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {activePane === 'skills' && (
-            <section>
-              <p className="text-xs text-terminal-green/40 mb-1">// skill-graph --visualize</p>
-              <h2 className="text-lg font-bold tracking-widest mb-6">SKILL GRAPH</h2>
-              <div className="space-y-3">
-                {SKILLS.map(s => (
-                  <div key={s.name}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-terminal-green">{s.name}</span>
-                      <span className="flex gap-4">
-                        <span className="text-terminal-green/40">[{s.category}]</span>
-                        <span className="text-terminal-amber">{s.level}%</span>
-                      </span>
-                    </div>
-                    <div className="border border-terminal-green/20 h-4 relative overflow-hidden">
-                      <div
-                        className="h-full bg-terminal-green/30 transition-all duration-700"
-                        style={{ width: `${s.level}%` }}
-                      />
-                      <div
-                        className="absolute top-0 left-0 h-full bg-terminal-green/80 transition-all duration-700"
-                        style={{ width: `${s.level * 0.7}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+        {/* KPI Row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+          {[
+            { label: 'SKILL_SCORE', value: '847', unit: '/1000', color: 'text-terminal-green' },
+            { label: 'JOB_MATCHES', value: '142', unit: 'active', color: 'text-terminal-amber' },
+            { label: 'SKILL_GAPS', value: '7', unit: 'detected', color: 'text-red-400' },
+            { label: 'CAREER_PATHS', value: '4', unit: 'predicted', color: 'text-blue-400' },
+          ].map(k => (
+            <div key={k.label} className="border border-terminal-green/20 p-4 hover:border-terminal-green/50 transition-colors">
+              <div className="text-terminal-green/40 text-xs mb-1">{k.label}</div>
+              <div className={`text-2xl font-bold ${k.color}`}>{k.value}</div>
+              <div className="text-terminal-green/40 text-xs">{k.unit}</div>
+            </div>
+          ))}
+        </div>
 
-              <div className="mt-8">
-                <p className="text-xs text-terminal-green/40 mb-1">// gaps --critical</p>
-                <h3 className="text-sm font-bold tracking-widest mb-4">SKILL GAPS</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {GAPS.map(g => (
-                    <div key={g.skill} className="border border-terminal-green/20 p-3 flex justify-between items-center">
-                      <span className="text-terminal-green text-sm">{g.skill}</span>
-                      <div className="text-right">
-                        <span className={`text-xs block ${g.priority === 'HIGH' ? 'text-red-400' : g.priority === 'MED' ? 'text-terminal-amber' : 'text-terminal-green/60'}`}>
-                          {g.priority}
-                        </span>
-                        <span className="text-xs text-terminal-green/40">{g.eta}</span>
+        {/* Split Terminal Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Left: Skill Graph */}
+          <div className="lg:col-span-2">
+            {/* Tabs */}
+            <div className="flex border-b border-terminal-green/30 mb-0">
+              {(['skills', 'gaps', 'jobs', 'paths'] as Tab[]).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`px-4 py-2 text-xs font-bold tracking-wider transition-colors ${
+                    tab === t
+                      ? 'text-terminal-green border-b-2 border-terminal-green bg-terminal-green/5'
+                      : 'text-terminal-green/40 hover:text-terminal-green/70'
+                  }`}
+                >
+                  [{t.toUpperCase()}]
+                </button>
+              ))}
+            </div>
+
+            <div className="border border-terminal-green/30 border-t-0 p-4 min-h-[400px]">
+              {/* SKILLS TAB */}
+              {tab === 'skills' && (
+                <div>
+                  <div className="text-terminal-amber text-xs mb-4">// SKILL_COMPETENCY_MATRIX //</div>
+                  <div className="space-y-3">
+                    {SKILLS.map(s => (
+                      <div key={s.name}>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-terminal-green">{s.name}</span>
+                          <span className="text-terminal-green/50">{s.category} — {s.level}%</span>
+                        </div>
+                        <div className="h-1.5 bg-terminal-green/10 relative">
+                          <div
+                            className="h-full bg-terminal-green transition-all duration-700"
+                            style={{ width: `${s.level}%` }}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </section>
-          )}
+              )}
 
-          {activePane === 'career' && (
-            <section>
-              <p className="text-xs text-terminal-green/40 mb-1">// predict --career-paths</p>
-              <h2 className="text-lg font-bold tracking-widest mb-6">CAREER PREDICTION</h2>
-              <div className="space-y-4">
-                {CAREER_PATHS.map((c, i) => (
-                  <div key={c.role} className="border border-terminal-green/20 p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-terminal-green font-bold text-sm">[{String(i + 1).padStart(2, '0')}] {c.role}</span>
-                      <span className="text-terminal-amber font-bold">{c.prob}% MATCH</span>
-                    </div>
-                    <div className="border border-terminal-green/20 h-3">
-                      <div className="h-full bg-terminal-green transition-all" style={{ width: `${c.prob}%` }} />
-                    </div>
-                    <div className="mt-2 text-xs text-terminal-green/40">
-                      Confidence: {c.prob > 85 ? 'HIGH' : c.prob > 65 ? 'MEDIUM' : 'LOW'} | Salary: ${(80 + c.prob).toFixed(0)}k–${(120 + c.prob).toFixed(0)}k
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {activePane === 'jobs' && (
-            <section>
-              <p className="text-xs text-terminal-green/40 mb-1">// jobs --matched --sort-by-score</p>
-              <h2 className="text-lg font-bold tracking-widest mb-6">JOB MATCHES</h2>
-              <div className="space-y-3">
-                {JOBS.map(j => (
-                  <div key={j.title} className="border border-terminal-green/20 p-4 hover:border-terminal-green/60 transition-all">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-terminal-green font-bold text-sm">{j.title}</p>
-                        <p className="text-terminal-amber text-xs mt-0.5">{j.company}</p>
+              {/* GAPS TAB */}
+              {tab === 'gaps' && (
+                <div>
+                  <div className="text-terminal-amber text-xs mb-4">// SKILL_GAP_ANALYSIS //</div>
+                  <div className="space-y-3">
+                    {GAPS.map(g => (
+                      <div key={g.skill} className="flex items-center justify-between border border-terminal-green/20 p-3 hover:border-terminal-green/50 transition-colors">
+                        <div>
+                          <span className="text-terminal-green font-bold">{g.skill}</span>
+                          <span className="text-terminal-green/40 text-xs ml-3">est. {g.est} to learn</span>
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 border ${
+                          g.priority === 'HIGH' ? 'border-red-400/50 text-red-400' :
+                          g.priority === 'MED' ? 'border-terminal-amber/50 text-terminal-amber' :
+                          'border-terminal-green/30 text-terminal-green/60'
+                        }`}>{g.priority}</span>
                       </div>
-                      <span className="text-terminal-green font-bold text-sm border border-terminal-green px-2 py-0.5">
-                        {j.match}%
-                      </span>
-                    </div>
-                    <div className="flex gap-4 mt-2 text-xs text-terminal-green/40">
-                      <span>📍 {j.loc}</span>
-                      <span>💰 {j.salary}</span>
-                    </div>
-                    <button className="mt-3 text-xs border border-terminal-green/30 px-3 py-1 hover:bg-terminal-green hover:text-black transition-all">
-                      [ APPLY NOW ]
-                    </button>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </section>
-          )}
+                </div>
+              )}
 
-          {activePane === 'progress' && (
-            <section>
-              <p className="text-xs text-terminal-green/40 mb-1">// tracker --progress</p>
-              <h2 className="text-lg font-bold tracking-widest mb-6">PROGRESS TRACKER</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              {/* JOBS TAB */}
+              {tab === 'jobs' && (
+                <div>
+                  <div className="text-terminal-amber text-xs mb-4">// JOB_MATCH_RESULTS — 142 found //</div>
+                  <div className="space-y-3">
+                    {JOBS.map(j => (
+                      <div key={j.title} className="border border-terminal-green/20 p-3 hover:border-terminal-green/50 transition-all hover:bg-terminal-green/5">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="text-terminal-green font-bold text-sm">{j.title}</p>
+                            <p className="text-terminal-green/50 text-xs">{j.company} — {j.location}</p>
+                          </div>
+                          <div className={`text-lg font-bold ${
+                            j.match >= 90 ? 'text-terminal-green' : j.match >= 80 ? 'text-terminal-amber' : 'text-terminal-green/60'
+                          }`}>{j.match}%</div>
+                        </div>
+                        <div className="flex gap-2 flex-wrap">
+                          {j.tags.map(tag => (
+                            <span key={tag} className="text-xs border border-terminal-green/20 px-2 py-0.5 text-terminal-green/60">{tag}</span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* PATHS TAB */}
+              {tab === 'paths' && (
+                <div>
+                  <div className="text-terminal-amber text-xs mb-4">// CAREER_PATH_PREDICTIONS //</div>
+                  <div className="space-y-4">
+                    {PATHS.map(p => (
+                      <div key={p.role} className="border border-terminal-green/20 p-4 hover:border-terminal-green/50 transition-all">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="text-terminal-amber text-xl">{p.icon}</span>
+                          <p className="text-terminal-green font-bold">{p.role}</p>
+                          <span className="ml-auto text-terminal-green font-bold">{p.probability}%</span>
+                        </div>
+                        <div className="h-1 bg-terminal-green/10 mb-2">
+                          <div className="h-full bg-terminal-green" style={{ width: `${p.probability}%` }} />
+                        </div>
+                        <p className="text-terminal-green/50 text-xs">Timeline: {p.timeline}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Progress Tracker */}
+          <div className="space-y-4">
+            {/* Progress */}
+            <div className="border border-terminal-green/30 p-4">
+              <div className="text-terminal-amber text-xs mb-3">// PROGRESS_TRACKER //</div>
+              <div className="space-y-3 text-xs">
                 {[
-                  { label: 'PROFILE COMPLETE', val: '78%', color: 'text-terminal-green' },
-                  { label: 'SKILLS TRACKED', val: '23', color: 'text-terminal-amber' },
-                  { label: 'JOBS APPLIED', val: '7', color: 'text-terminal-green' },
-                  { label: 'INTERVIEWS', val: '3', color: 'text-terminal-amber' },
-                ].map(stat => (
-                  <div key={stat.label} className="border border-terminal-green/20 p-4 text-center">
-                    <p className={`text-2xl font-bold ${stat.color}`}>{stat.val}</p>
-                    <p className="text-xs text-terminal-green/40 mt-1">{stat.label}</p>
+                  { label: 'Resume Uploaded', done: true },
+                  { label: 'Skills Extracted', done: true },
+                  { label: 'Gap Analysis Done', done: true },
+                  { label: 'Career Paths Predicted', done: true },
+                  { label: 'Resume Generated', done: false },
+                  { label: 'Portfolio Built', done: false },
+                  { label: 'Jobs Applied', done: false },
+                ].map(item => (
+                  <div key={item.label} className="flex items-center gap-2">
+                    <span className={item.done ? 'text-terminal-green' : 'text-terminal-green/30'}>
+                      {item.done ? '✓' : '○'}
+                    </span>
+                    <span className={item.done ? 'text-terminal-green' : 'text-terminal-green/30'}>
+                      {item.label}
+                    </span>
                   </div>
                 ))}
               </div>
-              <div className="border border-terminal-green/20 p-4">
-                <p className="text-xs text-terminal-green/40 mb-3">// activity --last-30-days</p>
-                <div className="grid grid-cols-10 gap-1">
-                  {Array.from({ length: 30 }, (_, i) => (
-                    <div
-                      key={i}
-                      className="h-6 border border-terminal-green/20"
-                      style={{ backgroundColor: `rgba(51,255,0,${Math.random() * 0.6})` }}
-                      title={`Day ${i + 1}`}
-                    />
-                  ))}
-                </div>
-                <p className="text-xs text-terminal-green/40 mt-2">Activity heatmap — last 30 days</p>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="border border-terminal-green/30 p-4">
+              <div className="text-terminal-amber text-xs mb-3">// QUICK_ACTIONS //</div>
+              <div className="space-y-2">
+                {[
+                  { label: 'Generate Resume', href: '/output' },
+                  { label: 'Build Portfolio', href: '/output?type=portfolio' },
+                  { label: 'Apply to Top Jobs', href: '/output?type=apply' },
+                  { label: 'Upload New Resume', href: '/upload' },
+                ].map(a => (
+                  <Link
+                    key={a.label}
+                    href={a.href}
+                    className="block border border-terminal-green/20 px-3 py-2 text-xs text-terminal-green/70 hover:border-terminal-green hover:text-terminal-green hover:bg-terminal-green/5 transition-all"
+                  >
+                    {'>'} {a.label}
+                  </Link>
+                ))}
               </div>
-            </section>
-          )}
+            </div>
+
+            {/* System Status */}
+            <div className="border border-terminal-green/30 p-4">
+              <div className="text-terminal-amber text-xs mb-3">// SYSTEM_STATUS //</div>
+              <div className="space-y-2 text-xs">
+                {[
+                  { label: 'AI_ENGINE', status: 'ONLINE', ok: true },
+                  { label: 'JOB_DATABASE', status: '142k jobs', ok: true },
+                  { label: 'VECTOR_DB', status: 'PINECONE', ok: true },
+                  { label: 'GPT-4_API', status: 'ACTIVE', ok: true },
+                ].map(s => (
+                  <div key={s.label} className="flex justify-between">
+                    <span className="text-terminal-green/50">{s.label}</span>
+                    <span className={s.ok ? 'text-terminal-green' : 'text-red-400'}>{s.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </main>
