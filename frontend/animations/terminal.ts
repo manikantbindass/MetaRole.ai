@@ -1,0 +1,48 @@
+// Terminal command simulation animations
+export const TERMINAL_COMMANDS = [
+  { cmd: 'metarole --init', delay: 0 },
+  { cmd: 'loading skill-matrix...', delay: 800 },
+  { cmd: 'analyzing career-graph...', delay: 1600 },
+  { cmd: 'predicting optimal-path...', delay: 2400 },
+  { cmd: 'system ready. welcome.', delay: 3200 },
+];
+
+export const ASCII_LOGO = `
+ ███╗   ███╗███████╗████████╗ █████╗ ██████╗  ██████╗ ██╗     ███████╗
+ ████╗ ████║██╔════╝╚══██╔══╝██╔══██╗██╔══██╗██╔═══██╗██║     ██╔════╝
+ ██╔████╔██║█████╗     ██║   ███████║██████╔╝██║   ██║██║     █████╗  
+ ██║╚██╔╝██║██╔══╝     ██║   ██╔══██║██╔══██╗██║   ██║██║     ██╔══╝  
+ ██║ ╚═╝ ██║███████╗   ██║   ██║  ██║██║  ██║╚██████╔╝███████╗███████╗
+ ╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚══════╝
+                              ▄█████╗ ██╗                                
+                             ██╔══██╗██║                                
+                             ███████║██║                                
+                             ██╔══██║██║                                
+                             ██║  ██║██║                                
+                             ╚═╝  ╚═╝╚═╝   v1.0.0
+`;
+
+export function simulateTerminalBoot(
+  outputEl: HTMLElement,
+  onComplete?: () => void
+) {
+  let lineIndex = 0;
+
+  function printNextLine() {
+    if (lineIndex >= TERMINAL_COMMANDS.length) {
+      onComplete?.();
+      return;
+    }
+    const { cmd, delay } = TERMINAL_COMMANDS[lineIndex];
+    setTimeout(() => {
+      const line = document.createElement('div');
+      line.className = 'terminal-line';
+      line.textContent = `> ${cmd}`;
+      outputEl.appendChild(line);
+      lineIndex++;
+      printNextLine();
+    }, delay);
+  }
+
+  printNextLine();
+}

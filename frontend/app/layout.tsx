@@ -1,14 +1,21 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { JetBrains_Mono } from 'next/font/google';
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
+  weight: ['300', '400', '500', '600', '700', '800'],
+});
 
 export const metadata: Metadata = {
   title: 'MetaRole AI — Your AI Career Co-Pilot',
-  description: 'AI-powered career co-pilot that analyzes your skills, predicts career paths, identifies gaps, and generates tailored resumes & portfolios.',
-  keywords: ['AI career', 'resume parser', 'skill gap analysis', 'career prediction', 'portfolio generator'],
-  authors: [{ name: 'MetaRole AI' }],
+  description: 'AI-powered career platform that analyzes skills, predicts career paths, identifies skill gaps, and generates portfolios + resumes.',
+  keywords: ['AI career', 'resume builder', 'skill analysis', 'job matching', 'career prediction'],
   openGraph: {
-    title: 'MetaRole AI — Your AI Career Co-Pilot',
-    description: 'The system knows your potential before you do.',
+    title: 'MetaRole AI',
+    description: 'Your AI Career Co-Pilot',
     type: 'website',
   },
 };
@@ -19,20 +26,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className={jetbrainsMono.variable}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap"
-          rel="stylesheet"
-        />
-        <meta name="theme-color" content="#0a0a0a" />
+        <link rel="icon" href="/favicon.ico" />
       </head>
-      <body className="font-mono bg-terminal-bg text-terminal-text antialiased">
-        <div className="grid-overlay min-h-screen">
-          {children}
-        </div>
+      <body className="bg-terminal-bg text-terminal-green font-mono antialiased">
+        {/* CRT scanline overlay */}
+        <div className="crt-overlay" aria-hidden="true" />
+        {children}
       </body>
     </html>
   );
