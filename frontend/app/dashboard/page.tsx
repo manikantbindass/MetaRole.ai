@@ -1,269 +1,155 @@
 'use client';
+
 import { useState } from 'react';
 import Link from 'next/link';
 
-const SKILLS = [
-  { name: 'JavaScript', level: 90, category: 'Frontend' },
-  { name: 'React / Next.js', level: 85, category: 'Frontend' },
-  { name: 'Node.js', level: 78, category: 'Backend' },
-  { name: 'Solidity', level: 72, category: 'Blockchain' },
-  { name: 'Python', level: 70, category: 'AI/ML' },
-  { name: 'PostgreSQL', level: 65, category: 'Database' },
-  { name: 'Docker / K8s', level: 60, category: 'DevOps' },
-  { name: 'LangChain', level: 45, category: 'AI/ML' },
+const METRICS = [
+  { label: 'SKILLS_MAPPED', value: '42', delta: '+8', color: '#33ff00' },
+  { label: 'CAREER_MATCH', value: '91%', delta: '+4%', color: '#ffb000' },
+  { label: 'GAPS_IDENTIFIED', value: '5', delta: '-2', color: '#ff4444' },
+  { label: 'JOBS_MATCHED', value: '128', delta: '+23', color: '#00ffff' },
 ];
 
-const GAPS = [
-  { skill: 'Rust', priority: 'HIGH', est: '3 months' },
-  { skill: 'GraphQL', priority: 'MED', est: '6 weeks' },
-  { skill: 'Redis', priority: 'MED', est: '4 weeks' },
-  { skill: 'Kubernetes Advanced', priority: 'LOW', est: '2 months' },
+const JOB_MATCHES = [
+  { title: 'Senior Full-Stack Engineer', company: 'Vercel', match: 96, salary: '$150k-200k', location: 'Remote' },
+  { title: 'Blockchain Developer', company: 'Chainlink Labs', match: 91, salary: '$130k-180k', location: 'Remote' },
+  { title: 'Node.js Backend Engineer', company: 'Stripe', match: 84, salary: '$140k-190k', location: 'SF/Remote' },
+  { title: 'React Frontend Lead', company: 'Figma', match: 79, salary: '$130k-170k', location: 'SF/Remote' },
 ];
 
-const JOBS = [
-  { title: 'Senior Full-Stack Engineer', company: 'Vercel', match: 94, location: 'Remote', tags: ['Next.js', 'TypeScript', 'Edge'] },
-  { title: 'Blockchain Developer', company: 'Coinbase', match: 88, location: 'San Francisco', tags: ['Solidity', 'Web3', 'DeFi'] },
-  { title: 'AI Platform Engineer', company: 'Hugging Face', match: 81, location: 'Remote', tags: ['Python', 'LLMs', 'FastAPI'] },
-  { title: 'DevOps Engineer', company: 'HashiCorp', match: 76, location: 'Remote', tags: ['K8s', 'Terraform', 'CI/CD'] },
+const RECENT_ACTIVITY = [
+  { time: '2m ago', event: 'Resume analyzed', status: 'OK' },
+  { time: '5m ago', event: 'Skill graph updated', status: 'OK' },
+  { time: '12m ago', event: 'Career paths predicted', status: 'OK' },
+  { time: '1h ago', event: 'Job matches refreshed', status: 'OK' },
+  { time: '2h ago', event: 'Portfolio generated', status: 'WARN' },
 ];
 
-const PATHS = [
-  { role: 'Senior Full-Stack Developer', probability: 94, timeline: '6-12 months', icon: '◈' },
-  { role: 'Blockchain / Web3 Developer', probability: 88, timeline: '3-6 months', icon: '⟁' },
-  { role: 'AI/ML Engineer', probability: 72, timeline: '12-18 months', icon: '▲' },
-  { role: 'DevOps / Platform Engineer', probability: 68, timeline: '6-12 months', icon: '◐' },
-];
+export default function DashboardPage() {
+  const [applyingJob, setApplyingJob] = useState<number | null>(null);
 
-type Tab = 'skills' | 'gaps' | 'jobs' | 'paths';
-
-export default function Dashboard() {
-  const [tab, setTab] = useState<Tab>('skills');
+  const handleApply = async (idx: number) => {
+    setApplyingJob(idx);
+    await new Promise(r => setTimeout(r, 1500));
+    setApplyingJob(null);
+  };
 
   return (
-    <main className="bg-terminal-bg text-terminal-green font-mono min-h-screen">
-      <div className="scanline-overlay pointer-events-none" />
+    <main className="min-h-screen bg-[#0a0a0a] text-[#33ff00] font-mono">
+      <div className="pointer-events-none fixed inset-0 z-50" style={{ background: 'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px)' }} />
 
-      {/* NAV */}
-      <nav className="border-b border-terminal-green/30 px-6 py-3 flex items-center justify-between sticky top-0 bg-terminal-bg/95 z-50">
-        <Link href="/" className="text-terminal-green font-bold tracking-widest">
-          <span className="text-terminal-amber">{'>'}</span> METAROLE<span className="text-terminal-amber">.AI</span>
-        </Link>
-        <div className="flex items-center gap-4 text-xs">
-          <Link href="/upload" className="text-terminal-green/60 hover:text-terminal-green">[UPLOAD]</Link>
-          <Link href="/output" className="text-terminal-amber hover:text-terminal-amber/80">[GENERATE_RESUME]</Link>
+      {/* Header */}
+      <header className="border-b border-[#33ff00]/20 px-6 py-3 flex items-center justify-between">
+        <Link href="/" className="text-sm tracking-widest hover:text-[#ffb000] transition-colors">← METAROLE_AI</Link>
+        <div className="flex items-center gap-4">
+          <span className="text-xs text-[#33ff00]/40 tracking-widest hidden sm:block">DASHBOARD_v1.0</span>
+          <Link href="/upload" className="border border-[#33ff00]/30 px-3 py-1 text-xs tracking-widest hover:border-[#33ff00] transition-all">+ UPLOAD</Link>
         </div>
-      </nav>
+      </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Dashboard Header */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Page title */}
         <div className="mb-8">
-          <div className="text-terminal-amber text-xs tracking-widest mb-1">// CAREER_INTELLIGENCE_DASHBOARD //</div>
-          <h1 className="text-2xl font-bold">CAREER OS — <span className="text-terminal-amber">ACTIVE SESSION</span></h1>
-          <div className="flex items-center gap-6 mt-3 text-xs text-terminal-green/50">
-            <span>● PROFILE: manikantbindass</span>
-            <span>● SKILLS ANALYZED: 34</span>
-            <span>● JOB MATCHES: 142</span>
-            <span>● LAST_SYNC: just now</span>
-          </div>
+          <div className="text-[#33ff00]/40 text-xs tracking-[0.3em] mb-2">// CAREER.DASHBOARD</div>
+          <h1 className="text-xl font-bold tracking-widest">OPERATOR_DASHBOARD</h1>
         </div>
 
-        {/* KPI Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-          {[
-            { label: 'SKILL_SCORE', value: '847', unit: '/1000', color: 'text-terminal-green' },
-            { label: 'JOB_MATCHES', value: '142', unit: 'active', color: 'text-terminal-amber' },
-            { label: 'SKILL_GAPS', value: '7', unit: 'detected', color: 'text-red-400' },
-            { label: 'CAREER_PATHS', value: '4', unit: 'predicted', color: 'text-blue-400' },
-          ].map(k => (
-            <div key={k.label} className="border border-terminal-green/20 p-4 hover:border-terminal-green/50 transition-colors">
-              <div className="text-terminal-green/40 text-xs mb-1">{k.label}</div>
-              <div className={`text-2xl font-bold ${k.color}`}>{k.value}</div>
-              <div className="text-terminal-green/40 text-xs">{k.unit}</div>
+        {/* Metrics */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+          {METRICS.map((m, i) => (
+            <div key={i} className="border border-[#33ff00]/20 p-4 hover:border-[#33ff00]/40 transition-colors">
+              <div className="text-xs text-[#33ff00]/40 tracking-widest mb-2">{m.label}</div>
+              <div className="text-2xl font-bold" style={{ color: m.color }}>{m.value}</div>
+              <div className="text-xs mt-1" style={{ color: m.color + '80' }}>{m.delta} SINCE_LAST</div>
             </div>
           ))}
         </div>
 
-        {/* Split Terminal Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Left: Skill Graph */}
-          <div className="lg:col-span-2">
-            {/* Tabs */}
-            <div className="flex border-b border-terminal-green/30 mb-0">
-              {(['skills', 'gaps', 'jobs', 'paths'] as Tab[]).map(t => (
-                <button
-                  key={t}
-                  onClick={() => setTab(t)}
-                  className={`px-4 py-2 text-xs font-bold tracking-wider transition-colors ${
-                    tab === t
-                      ? 'text-terminal-green border-b-2 border-terminal-green bg-terminal-green/5'
-                      : 'text-terminal-green/40 hover:text-terminal-green/70'
-                  }`}
-                >
-                  [{t.toUpperCase()}]
-                </button>
-              ))}
-            </div>
-
-            <div className="border border-terminal-green/30 border-t-0 p-4 min-h-[400px]">
-              {/* SKILLS TAB */}
-              {tab === 'skills' && (
-                <div>
-                  <div className="text-terminal-amber text-xs mb-4">// SKILL_COMPETENCY_MATRIX //</div>
-                  <div className="space-y-3">
-                    {SKILLS.map(s => (
-                      <div key={s.name}>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-terminal-green">{s.name}</span>
-                          <span className="text-terminal-green/50">{s.category} — {s.level}%</span>
-                        </div>
-                        <div className="h-1.5 bg-terminal-green/10 relative">
-                          <div
-                            className="h-full bg-terminal-green transition-all duration-700"
-                            style={{ width: `${s.level}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
+        {/* Split layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left: Job matches */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="text-xs text-[#33ff00]/40 tracking-widest">// JOB_MATCHES.LIVE — SORTED_BY_COMPATIBILITY</div>
+            {JOB_MATCHES.map((job, i) => (
+              <div key={i} className="border border-[#33ff00]/10 p-4 hover:border-[#33ff00]/30 transition-colors">
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">
+                  <div>
+                    <h3 className="font-bold text-[#33ff00] text-sm">{job.title}</h3>
+                    <p className="text-[#33ff00]/50 text-xs mt-1">{job.company} · {job.location}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[#ffb000] font-bold">{job.match}%</span>
+                    <button
+                      onClick={() => handleApply(i)}
+                      className="border border-[#33ff00]/30 px-4 py-1 text-xs tracking-widest hover:border-[#33ff00] hover:bg-[#33ff00]/10 transition-all"
+                    >
+                      {applyingJob === i ? '[ APPLYING... ]' : '[ APPLY ]'}
+                    </button>
                   </div>
                 </div>
-              )}
-
-              {/* GAPS TAB */}
-              {tab === 'gaps' && (
-                <div>
-                  <div className="text-terminal-amber text-xs mb-4">// SKILL_GAP_ANALYSIS //</div>
-                  <div className="space-y-3">
-                    {GAPS.map(g => (
-                      <div key={g.skill} className="flex items-center justify-between border border-terminal-green/20 p-3 hover:border-terminal-green/50 transition-colors">
-                        <div>
-                          <span className="text-terminal-green font-bold">{g.skill}</span>
-                          <span className="text-terminal-green/40 text-xs ml-3">est. {g.est} to learn</span>
-                        </div>
-                        <span className={`text-xs px-2 py-0.5 border ${
-                          g.priority === 'HIGH' ? 'border-red-400/50 text-red-400' :
-                          g.priority === 'MED' ? 'border-terminal-amber/50 text-terminal-amber' :
-                          'border-terminal-green/30 text-terminal-green/60'
-                        }`}>{g.priority}</span>
-                      </div>
-                    ))}
+                <div className="flex justify-between items-center">
+                  <div className="flex-1 h-0.5 bg-[#33ff00]/10 mr-4">
+                    <div className="h-full bg-[#33ff00]" style={{ width: `${job.match}%` }} />
                   </div>
+                  <span className="text-[#33ff00]/40 text-xs">{job.salary}</span>
                 </div>
-              )}
-
-              {/* JOBS TAB */}
-              {tab === 'jobs' && (
-                <div>
-                  <div className="text-terminal-amber text-xs mb-4">// JOB_MATCH_RESULTS — 142 found //</div>
-                  <div className="space-y-3">
-                    {JOBS.map(j => (
-                      <div key={j.title} className="border border-terminal-green/20 p-3 hover:border-terminal-green/50 transition-all hover:bg-terminal-green/5">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="text-terminal-green font-bold text-sm">{j.title}</p>
-                            <p className="text-terminal-green/50 text-xs">{j.company} — {j.location}</p>
-                          </div>
-                          <div className={`text-lg font-bold ${
-                            j.match >= 90 ? 'text-terminal-green' : j.match >= 80 ? 'text-terminal-amber' : 'text-terminal-green/60'
-                          }`}>{j.match}%</div>
-                        </div>
-                        <div className="flex gap-2 flex-wrap">
-                          {j.tags.map(tag => (
-                            <span key={tag} className="text-xs border border-terminal-green/20 px-2 py-0.5 text-terminal-green/60">{tag}</span>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* PATHS TAB */}
-              {tab === 'paths' && (
-                <div>
-                  <div className="text-terminal-amber text-xs mb-4">// CAREER_PATH_PREDICTIONS //</div>
-                  <div className="space-y-4">
-                    {PATHS.map(p => (
-                      <div key={p.role} className="border border-terminal-green/20 p-4 hover:border-terminal-green/50 transition-all">
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="text-terminal-amber text-xl">{p.icon}</span>
-                          <p className="text-terminal-green font-bold">{p.role}</p>
-                          <span className="ml-auto text-terminal-green font-bold">{p.probability}%</span>
-                        </div>
-                        <div className="h-1 bg-terminal-green/10 mb-2">
-                          <div className="h-full bg-terminal-green" style={{ width: `${p.probability}%` }} />
-                        </div>
-                        <p className="text-terminal-green/50 text-xs">Timeline: {p.timeline}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+              </div>
+            ))}
           </div>
 
-          {/* Right: Progress Tracker */}
-          <div className="space-y-4">
-            {/* Progress */}
-            <div className="border border-terminal-green/30 p-4">
-              <div className="text-terminal-amber text-xs mb-3">// PROGRESS_TRACKER //</div>
-              <div className="space-y-3 text-xs">
-                {[
-                  { label: 'Resume Uploaded', done: true },
-                  { label: 'Skills Extracted', done: true },
-                  { label: 'Gap Analysis Done', done: true },
-                  { label: 'Career Paths Predicted', done: true },
-                  { label: 'Resume Generated', done: false },
-                  { label: 'Portfolio Built', done: false },
-                  { label: 'Jobs Applied', done: false },
-                ].map(item => (
-                  <div key={item.label} className="flex items-center gap-2">
-                    <span className={item.done ? 'text-terminal-green' : 'text-terminal-green/30'}>
-                      {item.done ? '✓' : '○'}
-                    </span>
-                    <span className={item.done ? 'text-terminal-green' : 'text-terminal-green/30'}>
-                      {item.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="border border-terminal-green/30 p-4">
-              <div className="text-terminal-amber text-xs mb-3">// QUICK_ACTIONS //</div>
+          {/* Right: Activity + Progress */}
+          <div className="space-y-6">
+            {/* Activity log */}
+            <div className="border border-[#33ff00]/20 p-4">
+              <div className="text-xs text-[#33ff00]/40 tracking-widest mb-4">// ACTIVITY.LOG</div>
               <div className="space-y-2">
-                {[
-                  { label: 'Generate Resume', href: '/output' },
-                  { label: 'Build Portfolio', href: '/output?type=portfolio' },
-                  { label: 'Apply to Top Jobs', href: '/output?type=apply' },
-                  { label: 'Upload New Resume', href: '/upload' },
-                ].map(a => (
-                  <Link
-                    key={a.label}
-                    href={a.href}
-                    className="block border border-terminal-green/20 px-3 py-2 text-xs text-terminal-green/70 hover:border-terminal-green hover:text-terminal-green hover:bg-terminal-green/5 transition-all"
-                  >
-                    {'>'} {a.label}
-                  </Link>
+                {RECENT_ACTIVITY.map((act, i) => (
+                  <div key={i} className="flex justify-between items-center text-xs">
+                    <span className="text-[#33ff00]/40">{act.time}</span>
+                    <span className="text-[#33ff00]/70">{act.event}</span>
+                    <span className={act.status === 'OK' ? 'text-[#33ff00]' : 'text-[#ffb000]'}>[{act.status}]</span>
+                  </div>
                 ))}
               </div>
             </div>
 
-            {/* System Status */}
-            <div className="border border-terminal-green/30 p-4">
-              <div className="text-terminal-amber text-xs mb-3">// SYSTEM_STATUS //</div>
-              <div className="space-y-2 text-xs">
+            {/* Career progress */}
+            <div className="border border-[#33ff00]/20 p-4">
+              <div className="text-xs text-[#33ff00]/40 tracking-widest mb-4">// CAREER_PROGRESS</div>
+              <div className="space-y-3">
                 {[
-                  { label: 'AI_ENGINE', status: 'ONLINE', ok: true },
-                  { label: 'JOB_DATABASE', status: '142k jobs', ok: true },
-                  { label: 'VECTOR_DB', status: 'PINECONE', ok: true },
-                  { label: 'GPT-4_API', status: 'ACTIVE', ok: true },
-                ].map(s => (
-                  <div key={s.label} className="flex justify-between">
-                    <span className="text-terminal-green/50">{s.label}</span>
-                    <span className={s.ok ? 'text-terminal-green' : 'text-red-400'}>{s.status}</span>
+                  ['Resume Upload', 100],
+                  ['Skill Analysis', 100],
+                  ['Gap Identification', 100],
+                  ['Resume Generated', 80],
+                  ['Jobs Applied', 45],
+                ].map(([label, pct]) => (
+                  <div key={label as string}>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-[#33ff00]/60">{label as string}</span>
+                      <span className="text-[#ffb000]">{pct}%</span>
+                    </div>
+                    <div className="h-1 bg-[#33ff00]/10">
+                      <div className="h-full bg-[#33ff00]" style={{ width: `${pct}%` }} />
+                    </div>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Quick actions */}
+            <div className="border border-[#33ff00]/20 p-4">
+              <div className="text-xs text-[#33ff00]/40 tracking-widest mb-4">// QUICK_ACTIONS</div>
+              <div className="space-y-2">
+                <Link href="/analyze" className="block border border-[#33ff00]/20 px-4 py-2 text-xs tracking-widest hover:border-[#33ff00]/60 transition-all text-center">
+                  [ RE-ANALYZE ]
+                </Link>
+                <Link href="/output" className="block border border-[#33ff00]/20 px-4 py-2 text-xs tracking-widest hover:border-[#33ff00]/60 transition-all text-center">
+                  [ GENERATE_RESUME ]
+                </Link>
+                <Link href="/upload" className="block border border-[#33ff00]/20 px-4 py-2 text-xs tracking-widest hover:border-[#33ff00]/60 transition-all text-center">
+                  [ NEW_UPLOAD ]
+                </Link>
               </div>
             </div>
           </div>
