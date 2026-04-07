@@ -14,12 +14,8 @@ export async function jobMatch(req, res) {
     const out = await chat(prompt, 'Return ONLY strict JSON array of jobs.');
     let jobs = [];
     try {
-<<<<<<< HEAD
-      jobs = JSON.parse(out);
-=======
       const parsed = JSON.parse(out);
       jobs = Array.isArray(parsed) ? parsed : (parsed.jobs || []);
->>>>>>> vercel-fix
     } catch {
       jobs = [];
     }

@@ -13,18 +13,6 @@ function getClient() {
 }
 
 export async function chat(prompt, system = 'You are MetaRole AI.') {
-<<<<<<< HEAD
-  const client = getClient();
-  const res = await client.chat.completions.create({
-    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-    messages: [
-      { role: 'system', content: system },
-      { role: 'user', content: prompt },
-    ],
-  });
-
-  return res.choices[0]?.message?.content || '';
-=======
   if (process.env.MOCK_AI === 'true') {
     return getMockResponse(prompt);
   }
@@ -76,5 +64,4 @@ function getMockResponse(prompt) {
     ]);
   }
   return "This is a mock response from MetaRole AI. Your API key might be out of credits, but the system is still functional for demonstration purposes.";
->>>>>>> vercel-fix
 }
