@@ -1,6 +1,5 @@
 // frontend/lib/api.ts
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || '/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
 
 async function request<T>(
   path: string,
@@ -26,7 +25,7 @@ async function request<T>(
 
 export const api = {
   uploadResume: (body: { fileUrl?: string; content?: string }) =>
-    request<{ analysisId: string }>('/upload-resume', {
+    request<{ analysisId: string }>('/api/upload-resume', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
@@ -35,21 +34,21 @@ export const api = {
     request<{
       skills: string[];
       graph: { nodes: any[]; edges: any[] };
-    }>(`/analyze-skills?analysisId=${encodeURIComponent(analysisId)}`),
+    }>(`/api/analyze-skills?analysisId=${encodeURIComponent(analysisId)}`),
 
   predictCareer: (analysisId: string) =>
     request<{ predictions: { role: string; probability: number }[] }>(
-      `/predict-career?analysisId=${encodeURIComponent(analysisId)}`,
+      `/api/predict-career?analysisId=${encodeURIComponent(analysisId)}`,
     ),
 
   generateResume: (analysisId: string, jobTitle?: string) =>
-    request<{ resume: string }>(`/generate-resume`, {
+    request<{ resume: string }>(`/api/generate-resume`, {
       method: 'POST',
       body: JSON.stringify({ analysisId, jobTitle }),
     }),
 
   generatePortfolio: (analysisId: string) =>
-    request<{ html: string }>(`/generate-portfolio`, {
+    request<{ html: string }>(`/api/generate-portfolio`, {
       method: 'POST',
       body: JSON.stringify({ analysisId }),
     }),
@@ -64,5 +63,7 @@ export const api = {
         location: string;
         link?: string;
       }[];
-    }>(`/job-match?analysisId=${encodeURIComponent(analysisId)}`),
+    }>(`/api/job-match?analysisId=${encodeURIComponent(analysisId)}`),
+  
+  health: () => request<{ status: string; service: string }>('/api/health'),
 };

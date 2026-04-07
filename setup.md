@@ -124,46 +124,23 @@ docker compose up --build
 
 ## Deployment
 
-### Frontend → Vercel
+### Unified Deployment → Vercel (Recommended)
 
-```bash
-npm install -g vercel
-cd frontend
-vercel --prod
-```
-
-Add environment variables in Vercel dashboard:
-- `NEXT_PUBLIC_API_URL=https://your-backend.railway.app`
-- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
-
-### Backend → Railway
-
-1. Connect GitHub repo to [railway.app](https://railway.app)
-2. Set root directory to `backend/`
-3. Add environment variables in Railway dashboard
-4. Railway auto-detects `requirements.txt` and deploys
-
-### Backend → Render
-
-1. Create new Web Service at [render.com](https://render.com)
-2. Connect to your GitHub repo
-3. Set **Root Directory**: `backend`
-4. Set **Build Command**: `pip install -r requirements.txt`
-5. Set **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-6. Add environment variables
+1. Connect your GitHub repo to [Vercel](https://vercel.com).
+2. Vercel will auto-detect the `vercel.json` and `api/` folder.
+3. Ensure the **Root Directory** in Vercel settings is set to the repository root (not the `frontend` folder).
+4. Add your **Environment Variables** in the Vercel dashboard:
+   - `OPENAI_API_KEY`
+   - `NEXT_PUBLIC_API_URL` (leave empty for same-origin relative calls)
 
 ---
 
 ## Verification
 
 ```bash
-# Check backend health
-curl http://localhost:8000/health
-# Expected: {"status": "online", "version": "1.0.0"}
-
-# Check frontend
-curl http://localhost:3000
-# Expected: HTML response
+# Check unified health endpoint (deployed)
+curl https://your-app.vercel.app/api/health
+# Expected: {"status": "ok", "service": "MetaRole AI (Python/FastAPI)"}
 ```
 
 ---
