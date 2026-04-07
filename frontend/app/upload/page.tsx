@@ -3,7 +3,8 @@
 import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { api } from '../../lib/api';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 export default function UploadPage() {
   const router = useRouter();
@@ -14,27 +15,40 @@ export default function UploadPage() {
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isPdf, setIsPdf] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragActive(false);
     const dropped = e.dataTransfer.files[0];
-    if (dropped) readFile(dropped);
+    if (dropped) handleFileSelect(dropped);
   };
 
-  const readFile = (f: File) => {
+  const handleFileSelect = (f: File) => {
     setFile(f);
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      setResumeText(evt.target?.result as string || '');
-    };
-    reader.readAsText(f);
+    setError(null);
+
+    const isPdfFile = f.name.toLowerCase().endsWith('.pdf');
+    setIsPdf(isPdfFile);
+
+    if (isPdfFile) {
+      // Don't read PDFs as text — binary content will show as gibberish
+      // We'll send the file as FormData to the API for server-side text extraction
+      setResumeText('');
+    } else {
+      // For .txt / .docx files we can read as text
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        setResumeText((evt.target?.result as string) || '');
+      };
+      reader.readAsText(f);
+    }
   };
 
   const handleAnalyze = async () => {
-    const content = resumeText.trim() || file?.name || '';
-    if (!content) return;
+    const hasContent = resumeText.trim().length > 0 || (file && isPdf);
+    if (!hasContent) return;
 
     setUploading(true);
     setError(null);
@@ -49,35 +63,75 @@ export default function UploadPage() {
     ];
 
     try {
-      // Animate progress while calling backend
       for (const [pct, msg] of stages) {
         setProgress(pct);
         setStage(msg);
-        await new Promise(r => setTimeout(r, 400));
+        await new Promise((r) => setTimeout(r, 400));
       }
 
-      const { analysisId } = await api.uploadResume({ content });
+      let res: Response;
+
+      if (isPdf && file) {
+        // Send PDF as FormData — server will attempt text extraction
+        const formData = new FormData();
+        formData.append('file', file);
+        res = await fetch(`${API_BASE}/api/upload-resume`, {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        // Send plain text as JSON
+        res = await fetch(`${API_BASE}/api/upload-resume`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: resumeText.trim() }),
+        });
+      }
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        if (res.status === 422 && errBody.error?.includes('PDF binary')) {
+          // PDF couldn't be parsed server-side — ask user to paste text
+          setError(
+            'PDF parsing is not supported in the browser. Please paste your resume text in the box on the right instead.'
+          );
+          setUploading(false);
+          setProgress(0);
+          return;
+        }
+        throw new Error(errBody.error || `Upload failed with status ${res.status}`);
+      }
+
+      const { analysisId } = await res.json();
       setProgress(100);
       setStage('> Upload complete. Session created.');
-      await new Promise(r => setTimeout(r, 600));
-
-      // Redirect to output dashboard with the session ID
+      await new Promise((r) => setTimeout(r, 600));
       router.push(`/output?analysisId=${encodeURIComponent(analysisId)}`);
     } catch (e: any) {
-      setError(e.message || 'Upload failed. Is the backend running?');
+      setError(e.message || 'Upload failed. Please try again.');
       setUploading(false);
       setProgress(0);
     }
   };
 
+  const canAnalyze = (!uploading && resumeText.trim().length > 0) || (!uploading && file !== null && isPdf);
+
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-[#33ff00] font-mono">
-      {/* CRT */}
-      <div className="pointer-events-none fixed inset-0 z-50" style={{ background: 'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px)' }} />
+      {/* CRT overlay */}
+      <div
+        className="pointer-events-none fixed inset-0 z-50"
+        style={{
+          background:
+            'repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px)',
+        }}
+      />
 
       {/* NAV */}
       <nav className="border-b border-[#33ff00]/20 px-6 py-3 flex items-center justify-between">
-        <Link href="/" className="text-sm tracking-widest hover:text-[#ffb000] transition-colors">← METAROLE_AI</Link>
+        <Link href="/" className="text-sm tracking-widest hover:text-[#ffb000] transition-colors">
+          ← METAROLE_AI
+        </Link>
         <span className="text-[#33ff00]/40 text-xs tracking-widest">UPLOAD_MODULE</span>
       </nav>
 
@@ -96,7 +150,10 @@ export default function UploadPage() {
               className={`border-2 border-dashed p-10 text-center cursor-pointer transition-all ${
                 dragActive ? 'border-[#33ff00] bg-[#33ff00]/10' : 'border-[#33ff00]/30 hover:border-[#33ff00]/60'
               }`}
-              onDragOver={e => { e.preventDefault(); setDragActive(true); }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragActive(true);
+              }}
               onDragLeave={() => setDragActive(false)}
               onDrop={handleDrop}
               onClick={() => fileRef.current?.click()}
@@ -106,13 +163,18 @@ export default function UploadPage() {
                 type="file"
                 accept=".pdf,.doc,.docx,.txt"
                 className="hidden"
-                onChange={e => e.target.files?.[0] && readFile(e.target.files[0])}
+                onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
               />
               {file ? (
                 <div>
                   <div className="text-[#ffb000] text-2xl mb-2">◼</div>
                   <p className="text-[#33ff00] text-sm font-bold">{file.name}</p>
                   <p className="text-[#33ff00]/40 text-xs mt-1">{(file.size / 1024).toFixed(1)} KB</p>
+                  {isPdf && (
+                    <p className="text-[#ffb000]/70 text-xs mt-2">
+                      ⚠ PDF selected — paste text on the right for best results
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div>
@@ -131,13 +193,17 @@ export default function UploadPage() {
               <label className="text-xs tracking-widest text-[#33ff00]/60 block mb-2">RESUME_TEXT:</label>
               <textarea
                 value={resumeText}
-                onChange={e => setResumeText(e.target.value)}
-                placeholder="> Paste your resume content here..."
+                onChange={(e) => {
+                  setResumeText(e.target.value);
+                  setIsPdf(false);
+                  if (e.target.value.trim()) setFile(null);
+                }}
+                placeholder="> Paste your resume as plain text here for best AI results..."
                 rows={8}
                 className="w-full bg-[#0d0d0d] border border-[#33ff00]/20 text-[#33ff00] text-xs p-3 outline-none resize-none placeholder:text-[#33ff00]/20 focus:border-[#33ff00]/50"
               />
               <p className="text-[#33ff00]/30 text-xs mt-2">
-                {'>'} Paste plain text for best AI parsing results.
+                {'>'} Copy & paste from your PDF/Word doc for best AI parsing.
               </p>
             </div>
           </div>
@@ -147,12 +213,14 @@ export default function UploadPage() {
         <div className="border border-[#33ff00]/20 p-4 mt-6">
           <div className="text-xs text-[#33ff00]/40 mb-3 tracking-widest">ANALYSIS_OPTIONS:</div>
           <div className="grid grid-cols-2 gap-2">
-            {['Deep skill extraction', 'Career path prediction', 'Resume auto-generation', 'Job matching'].map((opt, i) => (
-              <label key={i} className="flex items-center gap-3 py-1 cursor-pointer group">
-                <input type="checkbox" defaultChecked className="accent-[#33ff00]" />
-                <span className="text-xs text-[#33ff00]/60 group-hover:text-[#33ff00] transition-colors">{opt}</span>
-              </label>
-            ))}
+            {['Deep skill extraction', 'Career path prediction', 'Resume auto-generation', 'Job matching'].map(
+              (opt, i) => (
+                <label key={i} className="flex items-center gap-3 py-1 cursor-pointer group">
+                  <input type="checkbox" defaultChecked className="accent-[#33ff00]" />
+                  <span className="text-xs text-[#33ff00]/60 group-hover:text-[#33ff00] transition-colors">{opt}</span>
+                </label>
+              )
+            )}
           </div>
         </div>
 
@@ -171,14 +239,14 @@ export default function UploadPage() {
 
           {error && (
             <div className="border border-red-500/40 p-4 mb-6 text-xs text-red-400">
-              {'>'} ERROR: {error}
-              <p className="text-red-400/60 mt-1">Make sure the backend services are initialized and accessible.</p>
+              <p className="font-bold mb-1">{'>'} ERROR</p>
+              <p>{error}</p>
             </div>
           )}
 
           <button
             onClick={handleAnalyze}
-            disabled={(!file && !resumeText.trim()) || uploading}
+            disabled={!canAnalyze}
             className="w-full border border-[#33ff00] bg-[#33ff00]/10 py-4 text-sm tracking-widest hover:bg-[#33ff00]/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
           >
             {uploading ? '[ ANALYZING... ]' : '[ INITIATE_ANALYSIS ]'}
