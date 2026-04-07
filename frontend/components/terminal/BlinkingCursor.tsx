@@ -7,7 +7,7 @@ interface BlinkingCursorProps {
   char?: string;
 }
 
-export function BlinkingCursor({ className = '', char = '█' }: BlinkingCursorProps) {
+export default function BlinkingCursor({ className = '', char = '█' }: BlinkingCursorProps) {
   return (
     <motion.span
       className={`inline-block text-terminal-green ml-0.5 ${className}`}

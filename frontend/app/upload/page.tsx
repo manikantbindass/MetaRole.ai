@@ -172,7 +172,7 @@ export default function UploadPage() {
           {error && (
             <div className="border border-red-500/40 p-4 mb-6 text-xs text-red-400">
               {'>'} ERROR: {error}
-              <p className="text-red-400/60 mt-1">Make sure the backend is running at http://localhost:8000</p>
+              <p className="text-red-400/60 mt-1">Make sure the backend services are initialized and accessible.</p>
             </div>
           )}
 

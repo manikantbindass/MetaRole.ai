@@ -14,7 +14,8 @@ export async function predictCareer(req, res) {
     const out = await chat(prompt, 'Return ONLY strict JSON array.');
     let predictions = [];
     try {
-      predictions = JSON.parse(out);
+      const parsed = JSON.parse(out);
+      predictions = Array.isArray(parsed) ? parsed : (parsed.predictions || []);
     } catch {
       predictions = [];
     }
