@@ -1,10 +1,32 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
+// Client-side PDF text extraction using pdfjs-dist
+async function extractPdfText(file: File): Promise<string> {
+  // Dynamically import to avoid SSR issues
+  const pdfjsLib = await import('pdfjs-dist');
+  // Use CDN worker to avoid bundling issues with Next.js
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+  const pageTexts: string[] = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items
+      .map((item: any) => item.str)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    pageTexts.push(pageText);
+  }
+  return pageTexts.join('\n').trim();
+}
 
 export default function UploadPage() {
   const router = useRouter();
@@ -12,11 +34,38 @@ export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [resumeText, setResumeText] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [parsing, setParsing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [isPdf, setIsPdf] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = useCallback(async (f: File) => {
+    setFile(f);
+    setError(null);
+    setResumeText('');
+
+    if (f.name.toLowerCase().endsWith('.pdf')) {
+      setParsing(true);
+      try {
+        const text = await extractPdfText(f);
+        if (text.length < 30) {
+          setError('Could not extract text from this PDF (it may be scanned/image-based). Please paste your resume text in the right panel.');
+        } else {
+          setResumeText(text);
+        }
+      } catch (e) {
+        setError('Could not read this PDF. Please paste your resume text in the right panel instead.');
+      } finally {
+        setParsing(false);
+      }
+    } else {
+      // Plain text / docx — read as text
+      const reader = new FileReader();
+      reader.onload = (evt) => setResumeText((evt.target?.result as string) || '');
+      reader.readAsText(f);
+    }
+  }, []);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -25,30 +74,9 @@ export default function UploadPage() {
     if (dropped) handleFileSelect(dropped);
   };
 
-  const handleFileSelect = (f: File) => {
-    setFile(f);
-    setError(null);
-
-    const isPdfFile = f.name.toLowerCase().endsWith('.pdf');
-    setIsPdf(isPdfFile);
-
-    if (isPdfFile) {
-      // Don't read PDFs as text — binary content will show as gibberish
-      // We'll send the file as FormData to the API for server-side text extraction
-      setResumeText('');
-    } else {
-      // For .txt / .docx files we can read as text
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        setResumeText((evt.target?.result as string) || '');
-      };
-      reader.readAsText(f);
-    }
-  };
-
   const handleAnalyze = async () => {
-    const hasContent = resumeText.trim().length > 0 || (file && isPdf);
-    if (!hasContent) return;
+    const content = resumeText.trim();
+    if (!content || uploading) return;
 
     setUploading(true);
     setError(null);
@@ -69,37 +97,16 @@ export default function UploadPage() {
         await new Promise((r) => setTimeout(r, 400));
       }
 
-      let res: Response;
-
-      if (isPdf && file) {
-        // Send PDF as FormData — server will attempt text extraction
-        const formData = new FormData();
-        formData.append('file', file);
-        res = await fetch(`${API_BASE}/api/upload-resume`, {
-          method: 'POST',
-          body: formData,
-        });
-      } else {
-        // Send plain text as JSON
-        res = await fetch(`${API_BASE}/api/upload-resume`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: resumeText.trim() }),
-        });
-      }
+      // Always use relative path — no API_BASE needed (same-origin)
+      const res = await fetch('/api/upload-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      });
 
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
-        if (res.status === 422 && errBody.error?.includes('PDF binary')) {
-          // PDF couldn't be parsed server-side — ask user to paste text
-          setError(
-            'PDF parsing is not supported in the browser. Please paste your resume text in the box on the right instead.'
-          );
-          setUploading(false);
-          setProgress(0);
-          return;
-        }
-        throw new Error(errBody.error || `Upload failed with status ${res.status}`);
+        throw new Error(errBody.error || `Server error: ${res.status}`);
       }
 
       const { analysisId } = await res.json();
@@ -114,7 +121,7 @@ export default function UploadPage() {
     }
   };
 
-  const canAnalyze = (!uploading && resumeText.trim().length > 0) || (!uploading && file !== null && isPdf);
+  const canAnalyze = !uploading && !parsing && resumeText.trim().length > 20;
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-[#33ff00] font-mono">
@@ -150,10 +157,7 @@ export default function UploadPage() {
               className={`border-2 border-dashed p-10 text-center cursor-pointer transition-all ${
                 dragActive ? 'border-[#33ff00] bg-[#33ff00]/10' : 'border-[#33ff00]/30 hover:border-[#33ff00]/60'
               }`}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragActive(true);
-              }}
+              onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
               onDragLeave={() => setDragActive(false)}
               onDrop={handleDrop}
               onClick={() => fileRef.current?.click()}
@@ -165,15 +169,19 @@ export default function UploadPage() {
                 className="hidden"
                 onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
               />
-              {file ? (
+              {parsing ? (
+                <div>
+                  <div className="text-[#33ff00] text-2xl mb-2 animate-pulse">◈</div>
+                  <p className="text-[#33ff00]/80 text-sm">PARSING_PDF...</p>
+                  <p className="text-[#33ff00]/40 text-xs mt-1">Extracting text from document</p>
+                </div>
+              ) : file ? (
                 <div>
                   <div className="text-[#ffb000] text-2xl mb-2">◼</div>
                   <p className="text-[#33ff00] text-sm font-bold">{file.name}</p>
                   <p className="text-[#33ff00]/40 text-xs mt-1">{(file.size / 1024).toFixed(1)} KB</p>
-                  {isPdf && (
-                    <p className="text-[#ffb000]/70 text-xs mt-2">
-                      ⚠ PDF selected — paste text on the right for best results
-                    </p>
+                  {resumeText && (
+                    <p className="text-[#33ff00]/60 text-xs mt-2">✓ {resumeText.split(' ').length} words extracted</p>
                   )}
                 </div>
               ) : (
@@ -181,6 +189,7 @@ export default function UploadPage() {
                   <div className="text-[#33ff00]/30 text-4xl mb-3">▲</div>
                   <p className="text-[#33ff00]/60 text-sm">DROP_FILE_HERE</p>
                   <p className="text-[#33ff00]/30 text-xs mt-2">PDF / DOC / DOCX / TXT</p>
+                  <p className="text-[#33ff00]/20 text-xs mt-1">Text auto-extracted from PDF</p>
                 </div>
               )}
             </div>
@@ -189,21 +198,20 @@ export default function UploadPage() {
           {/* Paste text */}
           <div>
             <div className="text-xs text-[#33ff00]/40 mb-3 tracking-widest">METHOD_02: PASTE_TEXT</div>
-            <div className="border border-[#33ff00]/30 p-4 h-full">
+            <div className="border border-[#33ff00]/30 p-4 h-full flex flex-col">
               <label className="text-xs tracking-widest text-[#33ff00]/60 block mb-2">RESUME_TEXT:</label>
               <textarea
                 value={resumeText}
                 onChange={(e) => {
                   setResumeText(e.target.value);
-                  setIsPdf(false);
                   if (e.target.value.trim()) setFile(null);
                 }}
-                placeholder="> Paste your resume as plain text here for best AI results..."
+                placeholder="> Paste your resume as plain text here..."
                 rows={8}
-                className="w-full bg-[#0d0d0d] border border-[#33ff00]/20 text-[#33ff00] text-xs p-3 outline-none resize-none placeholder:text-[#33ff00]/20 focus:border-[#33ff00]/50"
+                className="flex-1 w-full bg-[#0d0d0d] border border-[#33ff00]/20 text-[#33ff00] text-xs p-3 outline-none resize-none placeholder:text-[#33ff00]/20 focus:border-[#33ff00]/50"
               />
               <p className="text-[#33ff00]/30 text-xs mt-2">
-                {'>'} Copy & paste from your PDF/Word doc for best AI parsing.
+                {'>'} PDF text auto-extracts on upload, or paste manually here.
               </p>
             </div>
           </div>
@@ -213,14 +221,12 @@ export default function UploadPage() {
         <div className="border border-[#33ff00]/20 p-4 mt-6">
           <div className="text-xs text-[#33ff00]/40 mb-3 tracking-widest">ANALYSIS_OPTIONS:</div>
           <div className="grid grid-cols-2 gap-2">
-            {['Deep skill extraction', 'Career path prediction', 'Resume auto-generation', 'Job matching'].map(
-              (opt, i) => (
-                <label key={i} className="flex items-center gap-3 py-1 cursor-pointer group">
-                  <input type="checkbox" defaultChecked className="accent-[#33ff00]" />
-                  <span className="text-xs text-[#33ff00]/60 group-hover:text-[#33ff00] transition-colors">{opt}</span>
-                </label>
-              )
-            )}
+            {['Deep skill extraction', 'Career path prediction', 'Resume auto-generation', 'Job matching'].map((opt, i) => (
+              <label key={i} className="flex items-center gap-3 py-1 cursor-pointer group">
+                <input type="checkbox" defaultChecked className="accent-[#33ff00]" />
+                <span className="text-xs text-[#33ff00]/60 group-hover:text-[#33ff00] transition-colors">{opt}</span>
+              </label>
+            ))}
           </div>
         </div>
 
@@ -249,11 +255,11 @@ export default function UploadPage() {
             disabled={!canAnalyze}
             className="w-full border border-[#33ff00] bg-[#33ff00]/10 py-4 text-sm tracking-widest hover:bg-[#33ff00]/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            {uploading ? '[ ANALYZING... ]' : '[ INITIATE_ANALYSIS ]'}
+            {uploading ? '[ ANALYZING... ]' : parsing ? '[ PARSING PDF... ]' : '[ INITIATE_ANALYSIS ]'}
           </button>
 
           <p className="text-[#33ff00]/30 text-xs mt-3 text-center">
-            {'>'} Upload a file OR paste text above, then click INITIATE_ANALYSIS
+            {'>'} Drop / select a file OR paste text above, then click INITIATE_ANALYSIS
           </p>
         </div>
       </div>
